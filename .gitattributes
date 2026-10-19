@@ -1,2 +1,38 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# ==========================================
+# 1. MIPANGILIO YA SIRI (ENVIRONMENT)
+# ==========================================
+.env
+.env.local
+.env.production
+
+# ==========================================
+# 2. PHP BACKEND
+# ==========================================
+/vendor/
+composer.phar
+
+# ==========================================
+# 3. REACT FRONTEND
+# ==========================================
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env
+/frontend/package-lock.json
+
+# ==========================================
+# 4. FAILI ZINAZOTENGENEZWA NA MFUMO (STORAGE)
+# ==========================================
+# Tunazuia faili zote zinaingia Git, ila tunaruhusu folda zibaki
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+
+# ==========================================
+# 5. FAILI ZA PROGRAMU (IDE / OS)
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
