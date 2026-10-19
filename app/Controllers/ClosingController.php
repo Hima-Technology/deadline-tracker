@@ -93,24 +93,41 @@ class ClosingController
             $c = Closing::find((int)$id);
             if (!$c) Response::error('Closing not found', 404);
             
-            if ($u['role'] === 'staff' && (int)$c['assigned_staff_id'] !== (int)$u['id']) {
+            // Admin anaweza kufunga kazi yoyote
+            if ($u['role'] !== 'admin' && (int)$c['assigned_staff_id'] !== (int)$u['id']) {
                 Response::error('Forbidden', 403);
             }
 
             $data = Request::body();
+            $patch = [];
+
+            if (isset($data['status'])) $patch['status'] = $data['status'];
+            if (isset($data['reference_number'])) $patch['reference_number'] = $data['reference_number'];
             
-            if (isset($data['reference_number'])) {
-                $stmt = Database::pdo()->prepare(
-                    "UPDATE closings 
-                     SET reference_number = ?, updated_at = NOW() 
-                     WHERE id = ? RETURNING *"
-                );
-                $stmt->execute([$data['reference_number'], $id]);
-                $updated = $stmt->fetch();
-                
-                // Tumeondoa Closing::normalizeRow hapa ili kuepuka kosa
+            if (isset($data['status']) && $data['status'] === 'closed') {
+                $patch['closed_at'] = date('Y-m-d H:i:s');
+                $patch['closed_by'] = $u['id'];
+            }
+
+            // Kushughulikia Attachment (Proof)
+            if (!empty($_FILES['proof']['tmp_name'])) {
+                $file = $_FILES['proof'];
+                if ($file['size'] > 5 * 1024 * 1024) Response::error('File too large (max 5MB)', 422);
+                $allowed = ['application/pdf','image/jpeg','image/png'];
+                if (!in_array($file['type'], $allowed)) Response::error('Invalid file type', 422);
+
+                $dir = __DIR__ . '/../../storage/uploads/' . date('Y/m');
+                if (!is_dir($dir)) mkdir($dir, 0775, true);
+                $name = uniqid('proof_') . '_' . basename($file['name']);
+                move_uploaded_file($file['tmp_name'], "$dir/$name");
+                $patch['proof_file_path'] = "/uploads/" . date('Y/m') . "/$name";
+            }
+
+            // Update Database
+            if (!empty($patch)) {
+                $updated = Closing::update((int)$id, $patch);
                 ActivityLogger::log($u['id'], (int)$id, 'closing_updated', $c, $updated);
-                Response::success($updated, 'Reference number updated');
+                Response::success($updated, 'Record updated');
             } else {
                 Response::error('No data to update', 422);
             }

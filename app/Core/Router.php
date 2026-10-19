@@ -5,7 +5,6 @@ class Router
 {
     private array $routes = [];
 
-    // Badilisha 'callable $handler' kuwa '$handler' tu (bila type hint)
     public function add(string $method, string $path, $handler): void
     {
         $this->routes[] = compact('method', 'path', 'handler');
@@ -18,17 +17,22 @@ class Router
 
     public function dispatch(string $method, string $uri): void
     {
+        // Kama ni POST lakini kuna _method=PUT kwenye FormData, tumia PUT
+        if ($method === 'POST' && isset($_POST['_method'])) {
+            $method = strtoupper($_POST['_method']);
+        }
+
         foreach ($this->routes as $r) {
             if ($r['method'] !== $method) continue;
             
-            // Badilisha {id} kuwa regex inayokamata namba
-            $pattern = preg_replace('#\{(\w+)\}#', '(\d+)', $r['path']);
+            // Badilisha {id} kuwa (\d+) na {path} kuwa (.*)
+            $pattern = preg_replace('#\{id\}#', '(\d+)', $r['path']);
+            $pattern = preg_replace('#\{path\}#', '(.*)', $pattern);
             $pattern = '#^' . $pattern . '$#';
 
             if (preg_match($pattern, $uri, $matches)) {
-                array_shift($matches); // Ondoa URL kamili
+                array_shift($matches);
                 
-                // Kama handler ni array [ClassName, 'method'], tengeneza instance
                 if (is_array($r['handler']) && count($r['handler']) === 2) {
                     $controller = new $r['handler'][0]();
                     $action = $r['handler'][1];

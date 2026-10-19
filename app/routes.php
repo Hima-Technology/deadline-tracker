@@ -9,8 +9,12 @@ use App\Controllers\DashboardController;
 use App\Controllers\ReportController;
 use App\Controllers\SettingController;
 use App\Controllers\PasswordResetController;
+use App\Controllers\FileController;
 
 $router = new Router();
+
+// Files (Mpya) - Lazima iwe JUU ili isigongane na {id}
+$router->get('/api/files/{path}', [FileController::class, 'serve']);
 
 // Auth
 $router->post('/api/auth/login',           [AuthController::class, 'login']);
@@ -21,7 +25,7 @@ $router->post('/api/auth/change-password', [AuthController::class, 'changePasswo
 $router->post('/api/auth/forgot-password', [PasswordResetController::class, 'forgot']);
 $router->post('/api/auth/reset-password',  [PasswordResetController::class, 'reset']);
 
-// User Profile (Mpya) - Lazima ziwe juu ya /api/users/{id} ili zisigongane
+// User Profile
 $router->put('/api/users/profile',         [UserController::class, 'updateProfile']);
 $router->put('/api/users/change-password', [UserController::class, 'changeMyPassword']);
 

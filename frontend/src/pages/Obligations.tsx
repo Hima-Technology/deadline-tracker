@@ -59,7 +59,9 @@ export default function Obligations() {
       const [o, c, u] = await Promise.all([
         api.get('/obligations'), api.get('/clients'), api.get('/users'),
       ])
-      setRows(o.data.data); setClients(c.data.data); setStaff(u.data.data)
+      setRows(o.data.data || [])
+      setClients(c.data.data || [])
+      setStaff(u.data.data || [])
     } catch (e) {
       setError(errMsg(e))
     }
@@ -141,20 +143,24 @@ export default function Obligations() {
   }
 
   function clientName(id: number) {
+    if (!id) return 'Unknown Client'
     return clients.find((c) => c.id === id)?.company_name || `#${id}`
   }
   function staffName(id?: number) {
+    if (!id) return 'Unassigned'
     return staff.find((s) => s.id === id)?.name || '—'
   }
 
-  // DATA TABLE LOGIC
+  // DATA TABLE LOGIC - Nimebadilisha hapa kutumia String()
   const filteredData = useMemo(() => {
     return rows.filter((o) => {
-      const clientNameStr = clientName(o.client_id).toLowerCase()
-      const staffNameStr = staffName(o.default_staff_id).toLowerCase()
+      const clientNameStr = String(clientName(o.client_id)).toLowerCase()
+      const staffNameStr = String(staffName(o.default_staff_id)).toLowerCase()
       const searchLower = search.toLowerCase()
+      const titleStr = String(o.title || '').toLowerCase()
+      
       return (
-        o.title.toLowerCase().includes(searchLower) ||
+        titleStr.includes(searchLower) ||
         clientNameStr.includes(searchLower) ||
         staffNameStr.includes(searchLower)
       )
@@ -163,8 +169,8 @@ export default function Obligations() {
 
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
-      let valA: any = a.title
-      let valB: any = b.title
+      let valA: any = String(a.title || '')
+      let valB: any = String(b.title || '')
 
       if (sortKey === 'client') {
         valA = clientName(a.client_id)
@@ -173,11 +179,11 @@ export default function Obligations() {
         valA = staffName(a.default_staff_id)
         valB = staffName(b.default_staff_id)
       } else if (sortKey === 'frequency') {
-        valA = a.frequency
-        valB = b.frequency
+        valA = String(a.frequency || '')
+        valB = String(b.frequency || '')
       } else if (sortKey === 'due_day') {
-        valA = a.due_day
-        valB = b.due_day
+        valA = Number(a.due_day) || 0
+        valB = Number(b.due_day) || 0
       }
 
       if (valA < valB) return sortAsc ? -1 : 1
@@ -199,7 +205,6 @@ export default function Obligations() {
     setPage(1)
   }
 
-  // KAZI YA KU-COMPUTE DEADLINE NA SIKU ZILIZOBAKI
   function calculateDeadline(obligation: Obligation) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -210,14 +215,13 @@ export default function Obligations() {
       deadline = new Date(today.getFullYear(), today.getMonth(), obligation.due_day);
       if (deadline < today) deadline.setMonth(deadline.getMonth() + 1);
     } else if (obligation.frequency === 'quarterly') {
-      // Tunadhani due_day ni tarehe ya mwezi wa tatu
       deadline = new Date(today.getFullYear(), today.getMonth(), obligation.due_day);
       const currentMonth = today.getMonth();
       const nextQuarterMonth = Math.ceil((currentMonth + 1) / 3) * 3; 
       deadline = new Date(today.getFullYear(), nextQuarterMonth - 1, obligation.due_day);
       if (deadline < today) deadline.setFullYear(deadline.getFullYear() + 1);
     } else if (obligation.frequency === 'annual') {
-      deadline = new Date(today.getFullYear(), 0, obligation.due_day); // Mwezi wa kwanza
+      deadline = new Date(today.getFullYear(), 0, obligation.due_day);
       if (deadline < today) deadline.setFullYear(deadline.getFullYear() + 1);
     } else {
       deadline = new Date(today.getFullYear(), today.getMonth(), obligation.due_day);
@@ -230,6 +234,10 @@ export default function Obligations() {
       dateStr: deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       daysLeft: diffDays
     };
+  }
+
+  if (!rows) {
+    return <div className="p-8 text-center text-cyan-600 animate-pulse font-mono">Loading obligations data...</div>
   }
 
   return (
@@ -510,7 +518,6 @@ export default function Obligations() {
                   <span className="text-sm font-semibold text-slate-700 font-mono">{viewObligation.due_day} of the period</span>
                 </div>
                 
-                {/* KIPENGELE KIPYA CHA CALCULATED DEADLINE */}
                 <div className="p-3 border border-gray-100 bg-white sm:col-span-2 flex items-center justify-between">
                   <div>
                     <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">Next Deadline</span>

@@ -15,21 +15,31 @@ class ReminderService
         $count = 0;
 
         foreach ($obligations as $o) {
-            $period = self::currentPeriod($o['frequency']);
-            if ($period === null) continue;
+            try {
+                $period = self::currentPeriod($o['frequency']);
+                if ($period === null) continue;
 
-            $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
+                $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
 
-            $sql = "INSERT INTO closings
-                    (obligation_id, client_id, assigned_staff_id, period_label, due_date, status)
-                    VALUES (?,?,?,?,?, 'open')
-                    ON CONFLICT (obligation_id, period_label) DO NOTHING";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                $o['id'], $o['client_id'], $o['default_staff_id'],
-                $period, $dueDate
-            ]);
-            $count += $stmt->rowCount();
+                // Badilisha ON CONFLICT DO NOTHING kuwa DO UPDATE ili tusipate kosa la kimya kimya
+                $sql = "INSERT INTO closings
+                        (obligation_id, client_id, assigned_staff_id, period_label, due_date, status)
+                        VALUES (?,?,?,?,?, 'open')
+                        ON CONFLICT (obligation_id, period_label) DO UPDATE 
+                        SET due_date = EXCLUDED.due_date, assigned_staff_id = EXCLUDED.assigned_staff_id";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    $o['id'], $o['client_id'], $o['default_staff_id'],
+                    $period, $dueDate
+                ]);
+                
+                if ($stmt->rowCount() > 0) {
+                    $count++;
+                }
+            } catch (\Throwable $e) {
+                // Kama kuna kosa, lionyeshe wazi kwenye terminal
+                echo "Kosa kwenye Obligation ID {$o['id']}: " . $e->getMessage() . PHP_EOL;
+            }
         }
         return $count;
     }
@@ -53,18 +63,14 @@ class ReminderService
         $month = (int)$now->format('n');
 
         if ($freq === 'annual') {
-            $month = 1; // Kwa Annual, tunaweka mwezi wa kwanza (Januari)
+            $month = 1;
         } elseif ($freq === 'quarterly') {
-            // Kwa Quarterly, tunachukua mwezi wa mwisho wa robo hiyo
             $quarter = ceil($month / 3);
             $month = $quarter * 3;
         }
-        // Kwa Monthly, tunatumia mwezi wa sasa
 
-        // Hakikisha mwezi uko kati ya 1 na 12
         $month = max(1, min(12, $month));
 
-        // Hakikisha siku ipo kati ya 1 na siku za mwisho za mwezi huo
         $daysInMonth = (int)date('t', strtotime("{$year}-{$month}-01"));
         $day = min($dueDay, $daysInMonth);
         $day = max(1, $day);

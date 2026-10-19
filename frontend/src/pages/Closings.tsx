@@ -19,9 +19,15 @@ export default function Closings() {
 
   // View State
   const [viewClosing, setViewClosing] = useState<Closing | null>(null)
+  
   // Edit State
   const [editClosing, setEditClosing] = useState<Closing | null>(null)
   const [editRef, setEditRef] = useState('')
+
+  // Close Task State (Kwa ajili ya Admin)
+  const [closeClosing, setCloseClosing] = useState<Closing | null>(null)
+  const [closeRef, setCloseRef] = useState('')
+  const [closeFile, setCloseFile] = useState<File | null>(null)
 
   // Toast State
   const [toast, setToast] = useState({ show: false, message: '', type: 'loading' as 'loading' | 'success' | 'error' })
@@ -74,28 +80,51 @@ export default function Closings() {
     setEditRef(c.reference_number || '')
   }
 
-  // FANYA MAREKEBISHO HAPA
   async function saveEdit() {
     if (!editClosing) return
     setBusy(true)
-    // showToast('UPDATING RECORD...', 'loading') // Inaweza kuwa inasumbua kama una alert
     try {
       await api.put(`/closings/${editClosing.id}`, { reference_number: editRef })
-      
-      // 1. Funga Modal kwanza
       setEditClosing(null)
-      
-      // 2. Onyesha Toast ya Success
       showToast('RECORD UPDATED', 'success')
-      
-      // 3. Vuta data mpya
       await load() 
-      
     } catch (e: any) {
       const errDetail = e?.response?.data?.error_detail || e?.response?.data?.message || 'Unknown error'
       setError(errDetail)
       showToast('UPDATE FAILED', 'error')
-      // alert(`Kosa: ${errDetail}`) // Tumeondoa alert kwa muda
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // KUFUNGA KAZI (Mark as Closed) - Kwa Admin
+  function openClose(c: Closing) {
+    setCloseClosing(c)
+    setCloseRef('')
+    setCloseFile(null)
+  }
+
+  async function markClosed() {
+    if (!closeClosing) return
+    setBusy(true)
+    showToast('CLOSING TASK...', 'loading')
+    try {
+      const fd = new FormData()
+      fd.append('_method', 'PUT') // <-- Muhimu kwa PHP kupokea FormData
+      fd.append('status', 'closed')
+      fd.append('reference_number', closeRef)
+      if (closeFile) fd.append('proof', closeFile)
+
+      await api.post(`/closings/${closeClosing.id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      setCloseClosing(null)
+      showToast('TASK CLOSED', 'success')
+      await load()
+    } catch (e) {
+      setError(errMsg(e))
+      showToast('ACTION FAILED', 'error')
     } finally {
       setBusy(false)
     }
@@ -206,6 +235,31 @@ export default function Closings() {
                   <Badge status={c.status} />
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap flex justify-end gap-1">
+                  
+                  {/* KITUFE CHA KU-VIEW PROOF (KAMA IPO) */}
+                  {c.proof_file_path && (
+                    <a 
+                      href={`http://localhost:8000/api/files${c.proof_file_path}`} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="View Proof"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">description</span>
+                    </a>
+                  )}
+
+                  {/* KITUFE CHA KUFUNGA KAZI (MARK AS CLOSED) */}
+                  {c.status !== 'closed' && (
+                    <button 
+                      className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" 
+                      onClick={() => openClose(c)}
+                      title="Mark as Closed"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                    </button>
+                  )}
+
                   <button 
                     className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors" 
                     onClick={() => setViewClosing(c)}
@@ -345,6 +399,56 @@ export default function Closings() {
                   </>
                 ) : (
                   'Update Record'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL YA KUFUNGA KAZI (KWA ADMIN) */}
+      <Modal open={!!closeClosing} onClose={() => setCloseClosing(null)} title="Mark Task as Closed">
+        {closeClosing && (
+          <div className="space-y-4">
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800 font-mono">
+              Closing task for <strong>{closeClosing.company_name}</strong> ({closeClosing.period_label})
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Reference Number *</label>
+              <input 
+                className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm font-mono" 
+                value={closeRef}
+                onChange={(e) => setCloseRef(e.target.value)} 
+                placeholder="e.g. TRA-2026-..."
+              />
+            </div>
+            
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Proof (PDF / Image, optional)</label>
+              <input 
+                className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm file:mr-4 file:py-1 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" 
+                type="file" 
+                accept="application/pdf,image/*"
+                onChange={(e) => setCloseFile(e.target.files?.[0] || null)} 
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 mt-2">
+              <button className="px-4 py-2 bg-white border border-gray-200 text-slate-600 text-xs font-bold uppercase hover:bg-gray-50 transition-colors rounded-sm" onClick={() => setCloseClosing(null)}>
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase hover:bg-cyan-400 transition-colors shadow-sm rounded-sm flex items-center gap-2 disabled:opacity-50" 
+                onClick={markClosed} 
+                disabled={busy || !closeRef.trim()}
+              >
+                {busy ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span>
+                    Closing...
+                  </>
+                ) : (
+                  'Confirm Closure'
                 )}
               </button>
             </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import api, { errMsg } from '../api/client'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
-import Toast from '../components/Toast' // <-- Tumeongeza hii
+import Toast from '../components/Toast'
 import type { Closing } from '../types'
 
 export default function MyClosings() {
@@ -100,9 +100,21 @@ export default function MyClosings() {
             )}
             
             {c.status === 'closed' && (
-              <div className="bg-green-50 border border-green-100 p-2.5 rounded-sm flex items-center gap-2 text-sm text-green-700 font-medium">
-                <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
-                Closed Successfully {c.reference_number && `— Ref: ${c.reference_number}`}
+              <div className="bg-green-50 border border-green-100 p-2.5 rounded-sm flex items-center justify-between gap-2 text-sm text-green-700 font-medium">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
+                  Closed Successfully {c.reference_number && `— Ref: ${c.reference_number}`}
+                </div>
+                {c.proof_file_path && (
+                  <a 
+                    href={`http://localhost:8000/api/files${c.proof_file_path}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline text-xs font-bold uppercase"
+                  >
+                    View Proof
+                  </a>
+                )}
               </div>
             )}
           </div>
