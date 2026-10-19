@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LOceGfcBJFdyoRXNlVy2eQzMSmdyaojkdTOrRFXVxl68BMIo6V74u5ECcEtn7Gg
+\restrict PC6htbH5gE0YAix0cKWyROIHkwR5teuOubYCQaxe9mzcjQ3bEnaF7ehe2si2WHT
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -556,8 +556,6 @@ COPY public.activity_logs (id, user_id, closing_id, action, old_value, new_value
 78	1	\N	obligation_updated	\N	{"obligation_id": "2"}	127.0.0.1	2026-10-19 10:17:13.120794
 79	1	\N	login	\N	\N	127.0.0.1	2026-10-19 10:24:48.510277
 82	1	\N	login	\N	\N	127.0.0.1	2026-10-19 10:32:46.231933
-86	1	3	closing_updated	{"id": 3, "status": "overdue", "due_date": "2026-10-19", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-19 01:07:49.897238", "updated_at": "2026-10-19 01:07:49.897238", "period_label": "2026-10-19", "obligation_id": 4, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 1}	{"id": 3, "status": "overdue", "due_date": "2026-10-19", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-19 01:07:49.897238", "updated_at": "2026-10-19 10:46:48.27586", "period_label": "2026-10-19", "obligation_id": 4, "proof_file_path": null, "reference_number": "12345678", "assigned_staff_id": 1}	127.0.0.1	2026-10-19 10:46:48.279002
-87	1	3	closing_updated	{"id": 3, "status": "overdue", "due_date": "2026-10-19", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-19 01:07:49.897238", "updated_at": "2026-10-19 10:46:48.27586", "period_label": "2026-10-19", "obligation_id": 4, "proof_file_path": null, "reference_number": "12345678", "assigned_staff_id": 1}	{"id": 3, "status": "overdue", "due_date": "2026-10-19", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-19 01:07:49.897238", "updated_at": "2026-10-19 10:47:41.924567", "period_label": "2026-10-19", "obligation_id": 4, "proof_file_path": null, "reference_number": "12345678", "assigned_staff_id": 1}	127.0.0.1	2026-10-19 10:47:41.926536
 89	1	\N	obligation_deleted	\N	{"obligation_id": "6"}	127.0.0.1	2026-10-19 10:51:16.372411
 90	1	\N	client_created	\N	{"client_id": 3}	127.0.0.1	2026-10-19 10:56:03.869913
 91	1	\N	client_updated	\N	{"client_id": "3"}	127.0.0.1	2026-10-19 10:57:52.095778
@@ -575,7 +573,6 @@ COPY public.activity_logs (id, user_id, closing_id, action, old_value, new_value
 103	1	\N	login	\N	\N	127.0.0.1	2026-10-19 11:22:13.509046
 104	2	\N	login	\N	\N	127.0.0.1	2026-10-19 11:22:58.240657
 105	2	\N	login	\N	\N	127.0.0.1	2026-10-19 11:26:03.674886
-106	2	5	closing_closed	{"id": 5, "status": "open", "due_date": "2026-10-19", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-19 11:20:51.03261", "updated_at": "2026-10-19 11:20:51.03261", "period_label": "2026", "obligation_id": 4, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 2}	{"id": 5, "status": "closed", "due_date": "2026-10-19", "client_id": 2, "closed_at": "2026-10-19 11:31:41.136192", "closed_by": 2, "created_at": "2026-10-19 11:20:51.03261", "updated_at": "2026-10-19 11:31:41.136192", "period_label": "2026", "obligation_id": 4, "proof_file_path": "/uploads/2026/10/proof_6ad5d56d1df71_Sib-recovery-codes.pdf", "reference_number": "TRA-01-0026", "assigned_staff_id": 2}	127.0.0.1	2026-10-19 11:31:41.153895
 107	1	\N	login	\N	\N	127.0.0.1	2026-10-19 11:32:08.931781
 108	1	\N	obligation_updated	\N	{"obligation_id": "2"}	127.0.0.1	2026-10-19 11:32:44.170172
 109	1	\N	obligation_created	\N	{"obligation_id": 8}	127.0.0.1	2026-10-19 11:33:22.115729
@@ -592,6 +589,66 @@ COPY public.activity_logs (id, user_id, closing_id, action, old_value, new_value
 120	2	\N	login	\N	\N	127.0.0.1	2026-10-19 12:24:12.106689
 121	2	\N	login	\N	\N	127.0.0.1	2026-10-19 12:57:01.787369
 122	1	\N	login	\N	\N	127.0.0.1	2026-10-19 13:02:58.748244
+123	1	\N	login	\N	\N	127.0.0.1	2026-10-19 23:50:25.568018
+124	1	\N	user_updated	\N	{"user_id": "4"}	127.0.0.1	2026-10-19 23:54:01.697034
+125	1	\N	login	\N	\N	127.0.0.1	2026-10-19 23:54:32.561575
+126	1	\N	user_updated	\N	{"user_id": "4"}	127.0.0.1	2026-10-19 23:55:18.268174
+127	4	\N	login	\N	\N	127.0.0.1	2026-10-19 23:55:47.269813
+128	1	\N	login	\N	\N	127.0.0.1	2026-10-19 23:57:24.05949
+131	1	\N	obligation_deleted	\N	{"obligation_id": "4"}	127.0.0.1	2026-10-19 23:57:58.3909
+132	1	\N	obligation_deleted	\N	{"obligation_id": "8"}	127.0.0.1	2026-10-19 23:58:02.666796
+133	1	\N	obligation_deleted	\N	{"obligation_id": "7"}	127.0.0.1	2026-10-19 23:58:06.940591
+134	1	\N	obligation_deleted	\N	{"obligation_id": "2"}	127.0.0.1	2026-10-19 23:58:10.840066
+135	1	\N	obligation_created	\N	{"obligation_id": 9}	127.0.0.1	2026-10-19 23:59:51.599699
+136	1	\N	obligation_updated	\N	{"obligation_id": "9"}	127.0.0.1	2026-10-20 00:01:59.220319
+137	2	\N	login	\N	\N	127.0.0.1	2026-10-20 00:03:07.848533
+138	1	\N	login	\N	\N	127.0.0.1	2026-10-20 00:04:49.760076
+139	1	\N	obligation_deleted	\N	{"obligation_id": "9"}	127.0.0.1	2026-10-20 00:05:17.599231
+140	1	\N	obligation_created	\N	{"obligation_id": 10}	127.0.0.1	2026-10-20 00:05:45.247465
+141	1	\N	client_created	\N	{"client_id": 4}	127.0.0.1	2026-10-20 00:08:22.597977
+142	1	\N	obligation_deleted	\N	{"obligation_id": "10"}	127.0.0.1	2026-10-20 00:09:26.041438
+143	1	\N	obligation_created	\N	{"obligation_id": 12}	127.0.0.1	2026-10-20 00:09:53.258205
+144	1	\N	login	\N	\N	127.0.0.1	2026-10-20 00:17:27.619636
+145	1	\N	obligation_updated	\N	{"obligation_id": "12"}	127.0.0.1	2026-10-20 00:18:50.351561
+146	1	\N	obligation_updated	\N	{"obligation_id": "12"}	127.0.0.1	2026-10-20 00:19:11.157724
+147	4	\N	login	\N	\N	127.0.0.1	2026-10-20 00:26:29.655384
+149	1	\N	login	\N	\N	127.0.0.1	2026-10-20 00:27:14.099563
+150	1	\N	obligation_created	\N	{"obligation_id": 13}	127.0.0.1	2026-10-20 00:27:59.215258
+151	1	\N	login	\N	\N	127.0.0.1	2026-10-20 00:35:52.519149
+152	1	\N	obligation_deleted	\N	{"obligation_id": "13"}	127.0.0.1	2026-10-20 00:41:24.839683
+153	1	\N	obligation_created	\N	{"obligation_id": 14}	127.0.0.1	2026-10-20 00:41:40.839853
+154	1	\N	obligation_deleted	\N	{"obligation_id": "14"}	127.0.0.1	2026-10-20 00:50:23.72364
+155	1	\N	obligation_created	\N	{"obligation_id": 15}	127.0.0.1	2026-10-20 00:50:53.717787
+156	1	\N	login	\N	\N	127.0.0.1	2026-10-20 01:01:19.72732
+157	2	\N	login	\N	\N	127.0.0.1	2026-10-20 01:06:28.384127
+158	1	\N	login	\N	\N	127.0.0.1	2026-10-20 01:10:08.345919
+159	1	\N	obligation_created	\N	{"obligation_id": 16}	127.0.0.1	2026-10-20 01:10:32.266285
+160	2	\N	login	\N	\N	127.0.0.1	2026-10-20 01:11:44.274625
+161	1	\N	login	\N	\N	127.0.0.1	2026-10-20 01:14:05.565301
+162	1	\N	login	\N	\N	127.0.0.1	2026-10-20 01:22:48.16863
+163	1	\N	obligation_deleted	\N	{"obligation_id": "12"}	127.0.0.1	2026-10-20 01:23:10.703826
+164	1	\N	obligation_deleted	\N	{"obligation_id": "15"}	127.0.0.1	2026-10-20 01:23:13.65059
+165	1	\N	obligation_deleted	\N	{"obligation_id": "16"}	127.0.0.1	2026-10-20 01:23:18.395625
+166	1	\N	obligation_created	\N	{"obligation_id": 17}	127.0.0.1	2026-10-20 01:23:37.236641
+167	1	\N	login	\N	\N	127.0.0.1	2026-10-20 01:32:19.8784
+168	1	\N	user_created	\N	{"user_id": 6}	127.0.0.1	2026-10-20 01:33:57.182363
+169	1	\N	client_updated	\N	{"client_id": "4"}	127.0.0.1	2026-10-20 01:34:49.470007
+170	1	\N	obligation_created	\N	{"obligation_id": 18}	127.0.0.1	2026-10-20 01:35:31.89493
+171	1	\N	client_created	\N	{"client_id": 5}	127.0.0.1	2026-10-20 01:40:31.603187
+172	1	\N	obligation_created	\N	{"obligation_id": 19}	127.0.0.1	2026-10-20 01:40:59.458866
+173	1	\N	obligation_updated	\N	{"obligation_id": "19"}	127.0.0.1	2026-10-20 01:42:18.475078
+174	1	\N	client_updated	\N	{"client_id": "4"}	127.0.0.1	2026-10-20 01:44:47.145587
+175	1	\N	obligation_created	\N	{"obligation_id": 20}	127.0.0.1	2026-10-20 01:45:50.979041
+176	1	\N	obligation_created	\N	{"obligation_id": 21}	127.0.0.1	2026-10-20 01:48:53.425083
+177	1	26	closing_updated	{"id": 26, "status": "overdue", "due_date": "2026-10-15", "client_id": 4, "closed_at": null, "closed_by": null, "created_at": "2026-10-20 01:23:32.647382", "updated_at": "2026-10-20 01:23:32.647382", "period_label": "2026-10", "obligation_id": 17, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 2}	{"id": 26, "status": "closed", "due_date": "2026-10-15", "client_id": 4, "closed_at": "2026-10-20 00:59:25", "closed_by": 1, "created_at": "2026-10-20 01:23:32.647382", "updated_at": "2026-10-20 01:59:25.07499", "period_label": "2026-10", "obligation_id": 17, "proof_file_path": "/uploads/2026/10/proof_6ad6a0cd10f1b_report.pdf", "reference_number": "TRA-01-00292", "assigned_staff_id": 2}	127.0.0.1	2026-10-20 01:59:25.07928
+178	1	43	closing_updated	{"id": 43, "status": "overdue", "due_date": "2026-10-15", "client_id": 2, "closed_at": null, "closed_by": null, "created_at": "2026-10-20 01:48:49.373636", "updated_at": "2026-10-20 01:48:49.373636", "period_label": "2026-10", "obligation_id": 21, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 1}	{"id": 43, "status": "closed", "due_date": "2026-10-15", "client_id": 2, "closed_at": "2026-10-20 01:00:05", "closed_by": 1, "created_at": "2026-10-20 01:48:49.373636", "updated_at": "2026-10-20 02:00:05.193289", "period_label": "2026-10", "obligation_id": 21, "proof_file_path": "/uploads/2026/10/proof_6ad6a0f52eac5_report.pdf", "reference_number": "REF-010-0099", "assigned_staff_id": 1}	127.0.0.1	2026-10-20 02:00:05.197362
+179	2	\N	login	\N	\N	127.0.0.1	2026-10-20 02:00:40.937132
+180	2	31	closing_closed	{"id": 31, "status": "open", "due_date": "2026-12-15", "client_id": 5, "closed_at": null, "closed_by": null, "created_at": "2026-10-20 01:40:59.44842", "updated_at": "2026-10-20 01:40:59.44842", "period_label": "2026-Q4", "obligation_id": 19, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 2}	{"id": 31, "status": "closed", "due_date": "2026-12-15", "client_id": 5, "closed_at": "2026-10-20 02:01:02.084619", "closed_by": 2, "created_at": "2026-10-20 01:40:59.44842", "updated_at": "2026-10-20 02:01:02.084619", "period_label": "2026-Q4", "obligation_id": 19, "proof_file_path": "/uploads/2026/10/proof_6ad6a12e13bd8_Sib-recovery-codes.pdf", "reference_number": "TRA-01-02020", "assigned_staff_id": 2}	127.0.0.1	2026-10-20 02:01:02.088911
+181	1	\N	login	\N	\N	127.0.0.1	2026-10-20 02:04:54.484664
+182	1	\N	login	\N	\N	127.0.0.1	2026-10-20 02:20:48.18147
+183	1	\N	obligation_created	\N	{"obligation_id": 22}	127.0.0.1	2026-10-20 02:30:42.530505
+184	1	28	closing_updated	{"id": 28, "status": "overdue", "due_date": "2026-10-15", "client_id": 4, "closed_at": null, "closed_by": null, "created_at": "2026-10-20 01:35:27.697409", "updated_at": "2026-10-20 01:35:27.697409", "period_label": "2026-10", "obligation_id": 18, "proof_file_path": null, "reference_number": null, "assigned_staff_id": 4}	{"id": 28, "status": "closed", "due_date": "2026-10-15", "client_id": 4, "closed_at": "2026-10-20 01:36:08", "closed_by": 1, "created_at": "2026-10-20 01:35:27.697409", "updated_at": "2026-10-20 02:36:08.25692", "period_label": "2026-10", "obligation_id": 18, "proof_file_path": "/uploads/2026/10/proof_6ad6a9683d9d0_leo.jpeg", "reference_number": "TEST", "assigned_staff_id": 4}	127.0.0.1	2026-10-20 02:36:08.26397
+185	2	\N	login	\N	\N	127.0.0.1	2026-10-20 02:38:26.883859
 \.
 
 
@@ -610,6 +667,8 @@ COPY public.assessments (id, client_id, authority, reference_number, assessment_
 COPY public.clients (id, company_name, contact_person, phone, email, notes, created_by, created_at, updated_at, contract_start_date, contract_end_date, service_type, total_contract_amount, amount_paid, assessment_info) FROM stdin;
 2	students	Hussein Abdulrahman	0658216348	husseinali2334@gmail.com		1	2026-10-19 00:21:11.747761	2026-10-19 00:21:24.95571	2026-10-19	2027-12-19	Audit	2000000.00	300000000.00	gjtnjjtgitg
 3	compamy1	ABDALLA ABRAHMANI ABDALLA	0775892103	husseinali2334@gmail.com		1	2026-10-19 10:56:03.84802	2026-10-19 10:57:52.09271	2026-10-19	2027-01-01	Tax	2000000.00	150000.00	bgrengfngrngigni
+5	Monthly Audit Report	Dotto Mohamedi Ally	0716498209	hawamfaki1@gmail.com		1	2026-10-20 01:40:31.594942	2026-10-20 01:40:31.594942	2026-10-25	2027-12-20	Audit	10000000.00	500008.00	
+4	company 2	Sultan Abrahman Abdulla	0773154031	sultan@gmail.com		1	2026-10-20 00:08:22.594122	2026-10-20 01:44:47.137388	2026-10-20	2026-10-31	Registration	1000000.00	499985.00	there are many cases for registrations 
 \.
 
 
@@ -618,11 +677,12 @@ COPY public.clients (id, company_name, contact_person, phone, email, notes, crea
 --
 
 COPY public.closings (id, obligation_id, client_id, assigned_staff_id, period_label, due_date, status, closed_at, closed_by, reference_number, proof_file_path, created_at, updated_at) FROM stdin;
-5	4	2	2	2026	2026-10-19	closed	2026-10-19 11:31:41.136192	2	TRA-01-0026	/uploads/2026/10/proof_6ad5d56d1df71_Sib-recovery-codes.pdf	2026-10-19 11:20:51.03261	2026-10-19 11:31:41.136192
-1	2	2	1	2026-10	2026-10-19	overdue	\N	\N	\N	\N	2026-10-19 01:07:49.888704	2026-10-19 01:07:49.888704
-3	4	2	1	2026-10-19	2026-10-19	overdue	\N	\N	12345678	\N	2026-10-19 01:07:49.897238	2026-10-19 10:47:41.924567
-7	7	3	2	2026-Q4	2026-12-15	open	\N	\N	\N	\N	2026-10-19 11:38:23.940375	2026-10-19 11:38:23.940375
-9	8	3	4	2026-10	2026-10-15	overdue	\N	\N	\N	\N	2026-10-19 11:38:23.947339	2026-10-19 11:38:23.947339
+26	17	4	2	2026-10	2026-10-15	closed	2026-10-20 00:59:25	1	TRA-01-00292	/uploads/2026/10/proof_6ad6a0cd10f1b_report.pdf	2026-10-20 01:23:32.647382	2026-10-20 01:59:25.07499
+31	19	5	2	2026-Q4	2026-12-15	closed	2026-10-20 02:01:02.084619	2	TRA-01-02020	/uploads/2026/10/proof_6ad6a12e13bd8_Sib-recovery-codes.pdf	2026-10-20 01:40:59.44842	2026-10-20 02:01:02.084619
+43	21	2	1	2026-10	2026-10-15	closed	2026-10-20 01:00:05	1	REF-010-0099	/uploads/2026/10/proof_6ad6a0f52eac5_report.pdf	2026-10-20 01:48:49.373636	2026-10-20 02:00:05.193289
+38	20	2	6	2026-10	2026-10-15	overdue	\N	\N	\N	\N	2026-10-20 01:45:46.845809	2026-10-20 01:45:46.845809
+49	22	2	2	2026-10	2026-10-15	overdue	\N	\N	\N	\N	2026-10-20 02:30:38.307685	2026-10-20 02:30:38.307685
+28	18	4	4	2026-10	2026-10-15	closed	2026-10-20 01:36:08	1	TEST	/uploads/2026/10/proof_6ad6a9683d9d0_leo.jpeg	2026-10-20 01:35:27.697409	2026-10-20 02:36:08.25692
 \.
 
 
@@ -631,10 +691,12 @@ COPY public.closings (id, obligation_id, client_id, assigned_staff_id, period_la
 --
 
 COPY public.obligations (id, client_id, title, frequency, due_day, default_staff_id, reminder_days, is_active, created_at, updated_at, authority, document_type) FROM stdin;
-4	2	test	annual	19	2	[30, 7, 1, 0]	t	2026-10-19 00:32:28.099326	2026-10-19 11:15:24.624598	\N	\N
-7	3	job completed	quarterly	15	2	[5, 1, 0]	t	2026-10-19 11:19:11.645135	2026-10-19 11:19:11.645135	\N	\N
-2	2	deadline the finance	monthly	2	4	[30, 7, 1, 0]	t	2026-10-19 00:21:55.332996	2026-10-19 11:32:44.166281	\N	\N
-8	3	job2example	monthly	15	4	[5, 1, 0]	t	2026-10-19 11:33:22.10848	2026-10-19 11:33:22.10848	\N	\N
+17	4	task test	monthly	15	2	[5, 1, 0]	t	2026-10-20 01:23:32.638638	2026-10-20 01:23:32.638638	\N	\N
+18	4	ali test	monthly	15	4	[5, 1, 0]	t	2026-10-20 01:35:27.684884	2026-10-20 01:35:27.684884	\N	\N
+19	5	audit	quarterly	15	2	[5, 1, 0]	t	2026-10-20 01:40:59.439538	2026-10-20 01:42:18.455613	\N	\N
+20	2	harry	monthly	15	6	[5, 1, 0]	t	2026-10-20 01:45:46.832748	2026-10-20 01:45:46.832748	\N	\N
+21	2	me admin	monthly	15	1	[5, 1, 0]	t	2026-10-20 01:48:49.361182	2026-10-20 01:48:49.361182	\N	\N
+22	2	t	monthly	15	2	[5, 1, 0]	t	2026-10-20 02:30:38.275779	2026-10-20 02:30:38.275779	\N	\N
 \.
 
 
@@ -651,12 +713,16 @@ COPY public.payments (id, client_id, amount, payment_date, receipt_number, creat
 --
 
 COPY public.reminder_logs (id, closing_id, channel, recipient, message_template, status, provider_response, sent_at) FROM stdin;
-1	1	whatsapp	+255657413693	reminder_d0	failed	WhatsApp not configured	2026-10-19 01:07:49.912733
-2	1	email	admin@sbc.local	reminder_d0	failed	SMTP Error: Could not authenticate. SMTP server error: QUIT command failed	2026-10-19 01:07:51.639487
-5	3	whatsapp	+255657413693	reminder_d0	failed	WhatsApp not configured	2026-10-19 01:07:53.148894
-6	3	email	admin@sbc.local	reminder_d0	failed	SMTP Error: Could not authenticate. SMTP server error: QUIT command failed	2026-10-19 01:07:54.802611
-7	9	whatsapp	0775892103	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `400 Bad Request` response:\n{"error":{"message":"(#131030) Recipient phone number not in allowed list","code":131030,"type":"OAuthException","error_ (truncated...)\n	2026-10-19 11:38:25.849808
-8	9	email	husseinali2334@gmail.com	reminder_d0	sent	sent	2026-10-19 11:38:29.11258
+17	26	whatsapp	0658216348	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `401 Unauthorized` response:\n{"error":{"message":"Authentication Error","code":190,"type":"OAuthException","fbtrace_id":"A1KJ9jOU_bR0_BqMI8uFX9H"}}\n	2026-10-20 01:23:34.200795
+18	26	email	husseinabdulrahman2334@gmail.com	reminder_d0	sent	sent	2026-10-20 01:23:37.230805
+19	28	whatsapp	0775892103	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `401 Unauthorized` response:\n{"error":{"message":"Authentication Error","code":190,"type":"OAuthException","fbtrace_id":"AUaHLNMQq9JiLlfXp7EenpL"}}\n	2026-10-20 01:35:28.903116
+20	28	email	husseinali2334@gmail.com	reminder_d0	sent	sent	2026-10-20 01:35:31.886441
+21	38	whatsapp	0775892103	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `401 Unauthorized` response:\n{"error":{"message":"Authentication Error","code":190,"type":"OAuthException","fbtrace_id":"AdsaFkR2q7wuO6R2lwCv5T3"}}\n	2026-10-20 01:45:48.016975
+22	38	email	alidula2002@gmail.com	reminder_d0	sent	sent	2026-10-20 01:45:50.969707
+23	43	whatsapp	+255658216348	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `401 Unauthorized` response:\n{"error":{"message":"Authentication Error","code":190,"type":"OAuthException","fbtrace_id":"AP5Qgde6w00iMaMvIt2W6pv"}}\n	2026-10-20 01:48:50.516808
+24	43	email	admin@sbc.local	reminder_d0	sent	sent	2026-10-20 01:48:53.419322
+25	49	whatsapp	0658216348	reminder_d0	failed	Client error: `POST https://graph.facebook.com/v20.0/1336083899592072/messages` resulted in a `401 Unauthorized` response:\n{"error":{"message":"Authentication Error","code":190,"type":"OAuthException","fbtrace_id":"AugXhoey_MFloEzdv2Gq-VN"}}\n	2026-10-20 02:30:39.483569
+26	49	email	husseinabdulrahman2334@gmail.com	reminder_d0	sent	sent	2026-10-20 02:30:42.522959
 \.
 
 
@@ -676,9 +742,10 @@ COPY public.settings (id, key, value, updated_by, updated_at) FROM stdin;
 --
 
 COPY public.users (id, name, email, phone, password_hash, role, is_active, avatar_path, last_login_at, created_at, updated_at, reset_token, reset_token_expiry) FROM stdin;
-4	ABDALLA ABRAHMANI ABDALLA	husseinali2334@gmail.com	0775892103	$2y$10$fbQHeuzMUGVHwYNA28B0BeA4bqJBrPd2qmJzQgbRXpR6FDyG5MI4.	staff	t	\N	\N	2026-10-18 16:17:32.277155	2026-10-19 00:20:01.330251	0b28bcdc857d7203468c574ccd5fda4d944044af89d802dbe922bc15fdf7fc70	2026-10-19 10:24:17
-1	Hussein Abdulrahman	admin@sbc.local	+255658216348	$2y$10$Tdux5ImpVyQMiDnFx5k1Iu8yUDrSJThmbp9GTXvUFbbwiWFxbbIpe	admin	t	\N	2026-10-18 22:32:51	2026-10-18 13:04:38.166403	2026-10-19 12:00:48.732386	\N	\N
 2	Hussein Abdulrahman	husseinabdulrahman2334@gmail.com	0658216348	$2y$10$uGy1tSuQdWwiUE1jOAAhpecE5mwtcamtgsXdlzCn40hn9ErzHAcp6	staff	t	\N	2026-10-18 19:50:25	2026-10-18 15:40:09.100348	2026-10-19 13:00:28.910087	\N	\N
+4	ABDALLA ABRAHMANI ABDALLA	husseinali2334@gmail.com	0775892103	$2y$10$O72h.L6c5pwbDsqghDhLxOJF3WRvTD22V5YYoLb3B3FhENIieXEmK	staff	t	\N	\N	2026-10-18 16:17:32.277155	2026-10-19 23:55:18.263111	0b28bcdc857d7203468c574ccd5fda4d944044af89d802dbe922bc15fdf7fc70	2026-10-19 10:24:17
+1	Hussein Ali Abdulrahman	admin@sbc.local	+255658216348	$2y$10$Tdux5ImpVyQMiDnFx5k1Iu8yUDrSJThmbp9GTXvUFbbwiWFxbbIpe	admin	t	\N	2026-10-18 22:32:51	2026-10-18 13:04:38.166403	2026-10-20 00:00:23.069987	\N	\N
+6	Ali Abdallah Abdulrahman	alidula2002@gmail.com	0775892103	$2y$10$1jjeimc5W8KRkB.zgxgFdeN9oBlR.mJKkCLKe2bJFyK3EjyeMOOb6	staff	t	\N	\N	2026-10-20 01:33:57.173597	2026-10-20 01:33:57.173597	\N	\N
 \.
 
 
@@ -686,7 +753,7 @@ COPY public.users (id, name, email, phone, password_hash, role, is_active, avata
 -- Name: activity_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.activity_logs_id_seq', 122, true);
+SELECT pg_catalog.setval('public.activity_logs_id_seq', 185, true);
 
 
 --
@@ -700,21 +767,21 @@ SELECT pg_catalog.setval('public.assessments_id_seq', 1, false);
 -- Name: clients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.clients_id_seq', 3, true);
+SELECT pg_catalog.setval('public.clients_id_seq', 5, true);
 
 
 --
 -- Name: closings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.closings_id_seq', 9, true);
+SELECT pg_catalog.setval('public.closings_id_seq', 49, true);
 
 
 --
 -- Name: obligations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.obligations_id_seq', 8, true);
+SELECT pg_catalog.setval('public.obligations_id_seq', 22, true);
 
 
 --
@@ -728,7 +795,7 @@ SELECT pg_catalog.setval('public.payments_id_seq', 1, false);
 -- Name: reminder_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.reminder_logs_id_seq', 8, true);
+SELECT pg_catalog.setval('public.reminder_logs_id_seq', 26, true);
 
 
 --
@@ -742,7 +809,7 @@ SELECT pg_catalog.setval('public.settings_id_seq', 9, true);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 5, true);
+SELECT pg_catalog.setval('public.users_id_seq', 6, true);
 
 
 --
@@ -978,5 +1045,5 @@ ALTER TABLE ONLY public.settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LOceGfcBJFdyoRXNlVy2eQzMSmdyaojkdTOrRFXVxl68BMIo6V74u5ECcEtn7Gg
+\unrestrict PC6htbH5gE0YAix0cKWyROIHkwR5teuOubYCQaxe9mzcjQ3bEnaF7ehe2si2WHT
 
