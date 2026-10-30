@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'staff'
+export type Role = 'admin' | 'staff' | 'auditor'
 export type Status = 'open' | 'due_soon' | 'overdue' | 'closed'
 export type Frequency = 'monthly' | 'quarterly' | 'annual' | 'one_off'
 
@@ -21,13 +21,32 @@ export interface Client {
   notes?: string
   created_at?: string
   
-  // Vigezo vipya tulivyoongeza kwenye Database
+  // Vigezo vya Mikataba na Malipo
   contract_start_date?: string
   contract_end_date?: string
   service_type?: string
   total_contract_amount?: number
   amount_paid?: number
   assessment_info?: string
+
+  // Vigezo vipya (Company Profile & Credentials)
+  location?: 'Mainland' | 'Zanzibar'
+  tin?: string
+  tra_number?: string
+  zra_number?: string
+  bpra_number?: string
+  zssf_number?: string
+  industry?: string
+  financial_year_end?: string
+  tra_username?: string
+  tra_password?: string
+  zra_username?: string
+  zra_password?: string
+  bpra_username?: string
+  bpra_password?: string
+  zssf_username?: string
+  zssf_password?: string
+  auditor_id?: number
 }
 
 export interface Obligation {
@@ -39,8 +58,10 @@ export interface Obligation {
   default_staff_id?: number
   reminder_days: number[]
   is_active: boolean
-  authority?: 'TRA' | 'ZRA' | 'BPRA' | 'ALL' | 'TWO'
+  authority?: 'TRA' | 'ZRA' | 'ZSSF' | 'BPRA'
   document_type?: string
+  filing_status?: 'Not started' | 'Waiting for client' | 'In preparation' | 'Under review' | 'Filed' | 'Rejected' | 'Amended'
+  confirmed_due_date?: string
 }
 
 export interface Closing {

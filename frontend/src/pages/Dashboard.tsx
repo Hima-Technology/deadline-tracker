@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { errMsg } from '../api/client'
 import type { Counters, StaffPerf, Client, Closing } from '../types'
+import CalendarView from '../components/CalendarView'
 
 export default function Dashboard() {
   const [counters, setCounters] = useState<Counters | null>(null)
   const [perf, setPerf] = useState<StaffPerf[]>([])
   const [clients, setClients] = useState<Client[]>([])
-  const [recentClosings, setRecentClosings] = useState<Closing[]>([]) // <-- Tumeongeza hii
+  const [recentClosings, setRecentClosings] = useState<Closing[]>([])
+  const [allClosings, setAllClosings] = useState<Closing[]>([]) // <-- Array tupu
   const [error, setError] = useState('')
   const [time, setTime] = useState(new Date())
   
@@ -22,16 +24,16 @@ export default function Dashboard() {
     Promise.all([
       api.get('/dashboard/admin'),
       api.get('/clients'),
-      api.get('/closings') // <-- Tunavuta closings zote
+      api.get('/closings')
     ])
       .then(([dashRes, clientRes, closingRes]) => {
         setCounters(dashRes.data.data.counters)
         setPerf(dashRes.data.data.staff_performance)
-        setClients(clientRes.data.data)
+        setClients(clientRes.data.data || [])
         
-        // Tunachuja zile zilizofungwa tu (status === 'closed') na tunachukua 5 za mwisho
-        const allClosings = closingRes.data.data as Closing[]
-        const closedOnly = allClosings.filter(c => c.status === 'closed')
+        const all = (closingRes.data.data || []) as Closing[]
+        setAllClosings(all)
+        const closedOnly = all.filter(c => c.status === 'closed')
         setRecentClosings(closedOnly.slice(0, 5))
       })
       .catch((e) => setError(errMsg(e)))
@@ -62,7 +64,6 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col w-full bg-[#faf8ff] min-h-screen pb-20 font-sans">
       
-      {/* RED ALERT BANNER */}
       {overdueTasks > 0 && (
         <div className="mb-6 bg-red-50 border border-red-200 p-4 rounded-sm flex items-start gap-3 shadow-sm animate-pulse">
           <span className="material-symbols-outlined text-red-600 text-[24px]">warning</span>
@@ -81,7 +82,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* HEADER */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-8">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -115,9 +115,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI CARDS GRID */}
+      {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        {/* KPI 1: Wateja Wote */}
         <div className="relative bg-white p-4 shadow-sm border border-gray-100 group overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-cyan-500 shadow-[0_0_10px_#06b6d4]"></div>
           <div className="flex justify-between items-start">
@@ -134,7 +133,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* KPI 2: Wanaodaiwa */}
         <div className="relative bg-white p-4 shadow-sm border border-gray-100 group overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 animate-pulse"></div>
           <div className="flex justify-between items-start">
@@ -155,7 +153,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* KPI 3: Mikataba Inayoisha */}
         <div className="relative bg-white p-4 shadow-sm border border-gray-100 group overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500"></div>
           <div className="flex justify-between items-start">
@@ -172,7 +169,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* KPI 4: Kazi Zilizokamilika */}
         <div className="relative bg-white p-4 shadow-sm border border-gray-100 group overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-green-500"></div>
           <div className="flex justify-between items-start">
@@ -194,10 +190,14 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* CALENDAR VIEW */}
+      <div className="mb-8">
+        <CalendarView closings={allClosings || []} />
+      </div>
+
       {/* MAIN CONTENT GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN - STAFF PERFORMANCE & RECENT ACTIVITY */}
         <div className="lg:col-span-8 flex flex-col gap-4">
           
           <div className="bg-white p-4 shadow-sm border border-gray-100">
@@ -248,7 +248,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* REAL RECENT ACTIVITY */}
           <div className="bg-white p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between pb-3">
               <div className="flex items-center gap-2">
@@ -293,7 +292,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN - SYSTEM LOGS */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           
           <div className="bg-white p-4 shadow-sm border border-gray-100 relative overflow-hidden">

@@ -29,7 +29,7 @@ class PasswordResetController
             $stmt->execute([$token, $expiry, $user['id']]);
 
             // Tuma Email
-            $resetLink = "http://localhost:5174/reset-password?token=" . $token;
+            $resetLink = "http://localhost:5173/reset-password?token=" . $token;
             $subject = "Password Reset Request - SBC Deadline Tracker";
             $body = "
                 <h2>Hello {$user['name']},</h2>

@@ -11,6 +11,8 @@ import Closings from './pages/Closings'
 import MyClosings from './pages/MyClosings'
 import Settings from './pages/Settings'
 import ResetPassword from './pages/ResetPassword'
+import Privileges from './pages/Privileges'
+import MyPrivileges from './pages/MyPrivileges' // <-- Imeongezwa hapa
 
 export default function App() {
   return (
@@ -28,15 +30,17 @@ export default function App() {
               <Route path="/clients"     element={<Clients />} />
               <Route path="/obligations" element={<Obligations />} />
               <Route path="/closings"    element={<Closings />} />
-              {/* Settings imeondolewa hapa */}
+              
+              <Route path="/privileges"  element={<Privileges />} />
             </Route>
           </Route>
 
           {/* Staff routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/my-closings" element={<MyClosings />} />
-              <Route path="/settings"    element={<Settings />} />
+              <Route path="/my-closings"   element={<MyClosings />} />
+              <Route path="/my-privileges" element={<MyPrivileges />} /> {/* <-- Imeongezwa hapa */}
+              <Route path="/settings"      element={<Settings />} />
             </Route>
           </Route>
 

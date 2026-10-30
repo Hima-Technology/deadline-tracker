@@ -29,7 +29,12 @@ class UserController
     {
         $admin = Auth::requireAdmin();
         $data = Validator::require(Request::body(), ['name','email','password','role']);
-        if (!in_array($data['role'], ['admin','staff'])) Response::error('Invalid role', 422);
+        
+        // RUHUSU AUDITOR PIA
+        if (!in_array($data['role'], ['admin','staff','auditor'])) {
+            Response::error('Invalid role', 422);
+        }
+        
         if (User::findByEmail($data['email'])) Response::error('Email already exists', 409);
         if (strlen($data['password']) < 8) Response::error('Password too short', 422);
 
@@ -43,7 +48,7 @@ class UserController
         ]);
         unset($user['password_hash']);
         ActivityLogger::log($admin['id'], null, 'user_created', null, ['user_id' => $user['id']]);
-        Response::success($user, 'Staff created', 201);
+        Response::success($user, 'User created', 201);
     }
 
     public function update(string $id): void
@@ -64,7 +69,7 @@ class UserController
         $updated = User::update((int)$id, $patch);
         unset($updated['password_hash']);
         ActivityLogger::log($admin['id'], null, 'user_updated', null, ['user_id' => $id]);
-        Response::success($updated, 'Staff updated');
+        Response::success($updated, 'User updated');
     }
 
     public function destroy(string $id): void
@@ -73,7 +78,7 @@ class UserController
         if ((int)$id === (int)$admin['id']) Response::error('Cannot delete yourself', 422);
         User::delete((int)$id);
         ActivityLogger::log($admin['id'], null, 'user_deleted', null, ['user_id' => $id]);
-        Response::success(null, 'Staff deleted');
+        Response::success(null, 'User deleted');
     }
 
     // ==========================================

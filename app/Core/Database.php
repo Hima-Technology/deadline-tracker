@@ -28,4 +28,12 @@ class Database
         }
         return self::$pdo;
     }
+
+    /**
+     * Alias ya pdo() — inatumika na ClientController n.k.
+     */
+    public static function getInstance(): PDO
+    {
+        return self::pdo();
+    }
 }

@@ -14,14 +14,34 @@ abstract class BaseModel
         return Database::pdo();
     }
 
-    // Safisha data inayotoka Database (Sasa ni PUBLIC)
     public static function normalizeRow(array $row): array
     {
         foreach ($row as $key => $value) {
-            if ($value === 't' || $value === 'true') $row[$key] = true;
-            elseif ($value === 'f' || $value === 'false') $row[$key] = false;
+            if ($value === 't' || $value === 'true') {
+                $row[$key] = true;
+            } elseif ($value === 'f' || $value === 'false') {
+                $row[$key] = false;
+            } elseif (is_numeric($value) && in_array($key, ['total_contract_amount', 'amount_paid', 'amount'])) {
+                $row[$key] = (float) $value;
+            }
         }
         return $row;
+    }
+
+    protected static function prepareValue($v)
+    {
+        // Kama ni array tupu, usihifadhi "[]", rudisha null
+        if (is_array($v)) {
+            if (empty($v)) return null;
+            return json_encode($v);
+        }
+        if (is_bool($v)) {
+            return $v ? 1 : 0;
+        }
+        if ($v === '') {
+            return null;
+        }
+        return $v;
     }
 
     public static function all(array $where = [], string $order = 'id DESC'): array
@@ -32,7 +52,7 @@ abstract class BaseModel
             $conds = [];
             foreach ($where as $k => $v) {
                 $conds[] = "{$k} = ?";
-                $params[] = is_bool($v) ? ($v ? 1 : 0) : $v;
+                $params[] = self::prepareValue($v);
             }
             $sql .= ' WHERE ' . implode(' AND ', $conds);
         }
@@ -59,10 +79,7 @@ abstract class BaseModel
              . ' (' . implode(',', $keys) . ') VALUES (' . $placeholders . ') RETURNING *';
         $stmt = self::pdo()->prepare($sql);
         
-        $vals = array_map(function($v) {
-            if (is_bool($v)) return $v ? 1 : 0;
-            return $v;
-        }, array_values($cols));
+        $vals = array_map([static::class, 'prepareValue'], array_values($cols));
 
         $stmt->execute($vals);
         $row = $stmt->fetch();
@@ -76,10 +93,7 @@ abstract class BaseModel
         
         $sets = implode(', ', array_map(fn($k) => "{$k} = ?", array_keys($cols)));
         
-        $vals = array_map(function($v) {
-            if (is_bool($v)) return $v ? 1 : 0;
-            return $v;
-        }, array_values($cols));
+        $vals = array_map([static::class, 'prepareValue'], array_values($cols));
         
         $vals[] = $id;
         $sql = 'UPDATE ' . static::$table . " SET {$sets}, updated_at = NOW() WHERE id = ? RETURNING *";

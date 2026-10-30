@@ -1,42 +1,37 @@
 <?php
 namespace App\Controllers;
 
-use App\Core\Auth;
-use App\Core\Response;
-
 class FileController
 {
-    public function serve(string $path): void
+    public function serve(): void
     {
-        // Auth::requireAuth(); // Kwa majaribio, tunaiacha wazi
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $path = preg_replace('#^/api/files/#', '', $uri);
+        $path = str_replace(['..', '\\'], '', urldecode($path));
+        $path = ltrim($path, '/');
 
-        // Safisha path
-        $safePath = ltrim(str_replace(['..', '\\'], '', $path), '/');
+        $baseDir = __DIR__ . '/../../storage/';
+        $filePath = realpath($baseDir . $path);
 
-        // Njia kamili ya Windows (badilisha kama folda yako iko tofauti)
-        $fullPath = 'C:/xampp/htdocs/deadline-tracker/storage/' . $safePath;
-
-        // Kama haipo, jaribu public/storage
-        if (!file_exists($fullPath)) {
-            $fullPath = 'C:/xampp/htdocs/deadline-tracker/public/storage/' . $safePath;
+        if (!$filePath || !is_file($filePath) || strpos($filePath, realpath($baseDir)) !== 0) {
+            http_response_code(404);
+            echo "File not found: " . htmlspecialchars($path);
+            return;
         }
 
-        if (!file_exists($fullPath)) {
-            Response::error('File not found at: ' . $fullPath, 404);
-        }
-
-        $mimeType = mime_content_type($fullPath);
-        $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png'];
-
-        if (!in_array($mimeType, $allowedMimes)) {
-            Response::error('Invalid file type: ' . $mimeType, 403);
-        }
-
-        header('Content-Type: ' . $mimeType);
-        header('Content-Length: ' . filesize($fullPath));
-        header('Content-Disposition: inline; filename="' . basename($fullPath) . '"');
+        $mime = mime_content_type($filePath) ?: 'application/octet-stream';
         
-        readfile($fullPath);
+        // === BADILISHA HEADERS HAPA ===
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($filePath));
+        header('Content-Disposition: inline; filename="' . basename($filePath) . '"');
+        
+        // Ruhusu iframe kutoka localhost (Vite) kuonyesha PDF hii
+        header('X-Frame-Options: ALLOWALL');
+        header("Content-Security-Policy: frame-ancestors 'self' http://localhost:5173 http://127.0.0.1:5173");
+        // ==============================
+
+        readfile($filePath);
         exit;
     }
 }

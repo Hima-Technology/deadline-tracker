@@ -5,7 +5,7 @@ import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { User } from '../types'
 
-const empty = { name: '', email: '', phone: '', password: '', role: 'staff' as 'staff' | 'admin' }
+const empty = { name: '', email: '', phone: '', password: '', role: 'staff' as 'staff' | 'auditor' | 'admin' }
 
 export default function Staff() {
   const [rows, setRows] = useState<User[]>([])
@@ -203,7 +203,9 @@ export default function Staff() {
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs">{u.phone || '—'}</td>
                 <td className="px-4 py-3 text-center">
                   <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider ${
-                    u.role === 'admin' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    u.role === 'admin' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 
+                    u.role === 'auditor' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                    'bg-slate-100 text-slate-600 border border-slate-200'
                   }`}>
                     {u.role}
                   </span>
@@ -273,7 +275,6 @@ export default function Staff() {
 
       {/* MODAL YA KUONGEZA / KUHARIRI */}
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Edit Operator Profile' : 'Register New Operator'}>
-         {/* ... (Code ile ile ya fomu iliyopita) ... */}
          <div className="space-y-4">
           {error && <div className="text-xs text-red-600 bg-red-50 p-2 border border-red-100 rounded font-mono">{error}</div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -296,6 +297,7 @@ export default function Staff() {
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Clearance Level (Role)</label>
               <select className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm uppercase font-bold text-slate-700" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })}>
                 <option value="staff">Staff</option>
+                <option value="auditor">Auditor</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -313,7 +315,7 @@ export default function Staff() {
         </div>
       </Modal>
 
-      {/* MODAL YA KU-VIEW MTUMIAJI (MPYA) */}
+      {/* MODAL YA KU-VIEW MTUMIAJI */}
       <Modal open={!!viewUser} onClose={() => setViewUser(null)} title="Operator Profile Record">
         {viewUser && (
           <div className="space-y-4">

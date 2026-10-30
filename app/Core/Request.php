@@ -5,12 +5,12 @@ class Request
 {
     public static function body(): array
     {
-        // 1. Kama ni multipart/form-data (fomu yenye faili), data ipo kwenye $_POST
+        // Kama ni multipart/form-data (fomu yenye faili), data ipo kwenye $_POST
         if (!empty($_POST)) {
             return $_POST;
         }
         
-        // 2. Kama ni application/json (kama kawaida), data ipo kwenye php://input
+        // Kama ni application/json, data ipo kwenye php://input
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true);
         return is_array($data) ? $data : [];

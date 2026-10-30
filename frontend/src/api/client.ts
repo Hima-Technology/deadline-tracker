@@ -2,7 +2,8 @@ import axios from 'axios'
 import type { ApiResponse } from '../types'
 
 const api = axios.create({
-  baseURL: '/api',
+  // Elekeza moja kwa moja kwenye PHP Backend
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -17,7 +18,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    if (err.response?.status === 401) {
+    const isPasswordReveal = err.config?.url?.includes('/passwords')
+    if (err.response?.status === 401 && !isPasswordReveal) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       if (!window.location.pathname.startsWith('/login')) {

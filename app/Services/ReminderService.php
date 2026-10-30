@@ -11,7 +11,13 @@ class ReminderService
     public static function generateClosings(): int
     {
         $pdo = Database::pdo();
-        $obligations = $pdo->query('SELECT * FROM obligations WHERE is_active = TRUE')->fetchAll();
+        $obligations = $pdo->query(
+            'SELECT o.*, c.financial_year_end 
+             FROM obligations o 
+             JOIN clients c ON c.id = o.client_id 
+             WHERE o.is_active = TRUE'
+        )->fetchAll();
+        
         $count = 0;
 
         foreach ($obligations as $o) {
@@ -19,9 +25,21 @@ class ReminderService
                 $period = self::currentPeriod($o['frequency']);
                 if ($period === null) continue;
 
-                $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
+                if ($o['frequency'] === 'annual' && !empty($o['financial_year_end'])) {
+                    $fye = explode('-', $o['financial_year_end']);
+                    $month = (int)$fye[0];
+                    $day = (int)$fye[1];
+                    $year = (int)date('Y');
+                    
+                    $dueDateObj = new \DateTime("{$year}-{$month}-{$day}");
+                    if ($dueDateObj < new \DateTime('today')) {
+                        $year++;
+                    }
+                    $dueDate = sprintf('%04d-%02d-%02d', $year, $month, $day);
+                } else {
+                    $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
+                }
 
-                // Badilisha ON CONFLICT DO NOTHING kuwa DO UPDATE ili tusipate kosa la kimya kimya
                 $sql = "INSERT INTO closings
                         (obligation_id, client_id, assigned_staff_id, period_label, due_date, status)
                         VALUES (?,?,?,?,?, 'open')
@@ -37,7 +55,6 @@ class ReminderService
                     $count++;
                 }
             } catch (\Throwable $e) {
-                // Kama kuna kosa, lionyeshe wazi kwenye terminal
                 echo "Kosa kwenye Obligation ID {$o['id']}: " . $e->getMessage() . PHP_EOL;
             }
         }
@@ -101,7 +118,8 @@ class ReminderService
             $dueDate = new \DateTime($c['due_date']);
             $today   = new \DateTime('today');
             $diff    = (int)$today->diff($dueDate)->format('%r%a');
-            $offsets = json_decode($c['reminder_days'], true) ?: [30,7,1,0];
+            
+            $offsets = json_decode($c['reminder_days'], true) ?: [10, 7, 3, 1, 0];
 
             foreach ($offsets as $offset) {
                 if ($diff === $offset) {
@@ -113,6 +131,7 @@ class ReminderService
             if ($diff < 0) {
                 $result = self::deliver($c, 0, 'escalation');
                 if ($result) $stats['escalations_sent']++; else $stats['failed']++;
+                
                 foreach ($pdo->query("SELECT email, phone FROM users WHERE role='admin'") as $admin) {
                     self::deliverTo($c, $admin, 'escalation_admin');
                 }
@@ -137,7 +156,9 @@ class ReminderService
 
         $text = self::buildMessage($c, $templateKey);
         $subject = "Deadline: {$c['company_name']} — {$c['obligation_title']}";
+        $sent = false;
 
+        // 1. WhatsApp
         if (!empty($recipient['phone'])) {
             $res = WhatsAppService::sendTemplate($recipient['phone'], 'deadline_reminder', [
                 $c['staff_name'] ?? 'Team',
@@ -152,9 +173,10 @@ class ReminderService
                 'status' => $res['ok'] ? 'sent' : 'failed',
                 'provider_response' => $res['response'],
             ]);
-            if ($res['ok']) return true;
+            if ($res['ok']) $sent = true;
         }
 
+        // 2. Email (SMTP)
         if (!empty($recipient['email'])) {
             $res = EmailService::send($recipient['email'], $subject, nl2br($text));
             ReminderLog::create([
@@ -164,9 +186,23 @@ class ReminderService
                 'status' => $res['ok'] ? 'sent' : 'failed',
                 'provider_response' => $res['response'],
             ]);
-            return $res['ok'];
+            if ($res['ok']) $sent = true;
         }
-        return false;
+
+        // 3. SMS (Mpya)
+        if (!empty($recipient['phone'])) {
+            $res = SmsService::send($recipient['phone'], $text);
+            ReminderLog::create([
+                'closing_id' => $c['id'], 'channel' => 'sms',
+                'recipient'  => $recipient['phone'],
+                'message_template' => "reminder_d{$daysBefore}",
+                'status' => $res['ok'] ? 'sent' : 'failed',
+                'provider_response' => $res['response'],
+            ]);
+            if ($res['ok']) $sent = true;
+        }
+
+        return $sent;
     }
 
     private static function buildMessage(array $c, string $key): string

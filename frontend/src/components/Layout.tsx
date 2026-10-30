@@ -4,17 +4,20 @@ import { useAuth } from '../context/AuthContext'
 import Toast from './Toast'
 
 const adminNav = [
-  { to: '/dashboard',   label: 'Dashboard', icon: 'dashboard' },
-  { to: '/staff',       label: 'Active Staff', icon: 'grid_view' },
-  { to: '/clients',     label: 'Clients', icon: 'people' },
-  { to: '/obligations', label: 'Deadlines', icon: 'timer' },
-  { to: '/closings',    label: 'Telemetry Logs', icon: 'terminal' },
-  { to: '/settings',    label: 'System Settings', icon: 'settings' },
+  { to: '/dashboard',   label: 'Dashboard',        icon: 'dashboard' },
+  { to: '/staff',       label: 'Staff Directory',  icon: 'grid_view' },
+  { to: '/privileges',  label: 'Staff Privileges', icon: 'admin_panel_settings' },
+  { to: '/clients',     label: 'Client Directory', icon: 'people' },
+  { to: '/obligations', label: 'Deadlines',        icon: 'timer' },
+  { to: '/closings',    label: 'System Logs',      icon: 'terminal' },
+  { to: '/settings',    label: 'Settings',         icon: 'settings' },
 ]
 
+// HAPA: Tumeongeza "My Privileges" kwa ajili ya Staff
 const staffNav = [
-  { to: '/my-closings', label: 'My Closings', icon: 'checklist' },
-  { to: '/settings',    label: 'My Settings', icon: 'settings' },
+  { to: '/my-closings',   label: 'My Tasks',      icon: 'checklist' },
+  { to: '/my-privileges', label: 'My Privileges', icon: 'admin_panel_settings' },
+  { to: '/settings',      label: 'My Settings',   icon: 'settings' },
 ]
 
 export default function Layout() {
@@ -61,7 +64,7 @@ export default function Layout() {
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_#06b6d4] inline-block"></span>
-            <h1 className="font-bold text-sm tracking-tight text-slate-800 uppercase">SBC.DEADLINE.NODE</h1>
+            <h1 className="font-bold text-sm tracking-tight text-slate-800 uppercase">Deadline Tracker</h1>
             <span className="hidden sm:inline text-[10px] text-gray-400 uppercase tracking-widest font-mono">// {isAdmin() ? 'ADMIN' : 'STAFF'}</span>
           </div>
         </div>
@@ -69,7 +72,7 @@ export default function Layout() {
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 border border-gray-100 text-cyan-700 text-[10px] font-mono uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-            <span>SYSTEM OPERATIONAL</span>
+            <span>System Online</span>
           </div>
 
           <div className="flex items-center gap-3 pl-2 border-l border-gray-200">
@@ -105,8 +108,8 @@ export default function Layout() {
           }`}
         >
           <div className={`h-10 flex items-center justify-between bg-slate-50/50 border-b border-gray-100 ${isCollapsed ? 'px-2 justify-center' : 'px-4'}`}>
-            {!isCollapsed && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">NAV // GRID</span>}
-            {!isCollapsed && <span className="text-[10px] font-bold text-cyan-600 font-mono">SYS.01</span>}
+            {!isCollapsed && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">Navigation</span>}
+            {!isCollapsed && <span className="text-[10px] font-bold text-cyan-600 font-mono">v1.0</span>}
             {isCollapsed && <span className="w-2 h-2 bg-cyan-500"></span>}
           </div>
 
@@ -155,7 +158,7 @@ export default function Layout() {
             <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 bg-slate-50">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_#06b6d4]"></span>
-                <span className="font-bold text-sm tracking-tight text-slate-800 uppercase">NAVIGATION</span>
+                <span className="font-bold text-sm tracking-tight text-slate-800 uppercase">Menu</span>
               </div>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
@@ -201,10 +204,10 @@ export default function Layout() {
           <span className="text-[9px] font-bold uppercase font-mono">Home</span>
         </NavLink>
         
-        {/* 2. SBCs (Clients au My Closings kwa Staff) */}
-        <NavLink to={isAdmin() ? '/clients' : '/my-closings'} className={({isActive}) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
+        {/* 2. SBCs (Clients au My Privileges kwa Staff) */}
+        <NavLink to={isAdmin() ? '/clients' : '/my-privileges'} className={({isActive}) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
           <span className="material-symbols-outlined text-[22px]">grid_view</span>
-          <span className="text-[9px] font-bold uppercase font-mono">SBCs</span>
+          <span className="text-[9px] font-bold uppercase font-mono">{isAdmin() ? 'Clients' : 'Privileges'}</span>
         </NavLink>
 
         {/* 3. CENTER FLOATING BUTTON - INAONEKANA KWA ADMIN PEKEE */}

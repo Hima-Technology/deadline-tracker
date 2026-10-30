@@ -16,7 +16,8 @@ class Closing extends BaseModel
     public static function forStaff(int $staffId): array
     {
         $stmt = self::pdo()->prepare(
-            'SELECT c.*, cl.company_name, o.title AS obligation_title
+            'SELECT c.*, cl.company_name, o.title AS obligation_title,
+                    o.authority
              FROM closings c
              JOIN clients cl ON cl.id = c.client_id
              JOIN obligations o ON o.id = c.obligation_id
@@ -30,7 +31,7 @@ class Closing extends BaseModel
     public static function filter(array $filters = []): array
     {
         $sql = 'SELECT c.*, cl.company_name, o.title AS obligation_title,
-                       u.name AS staff_name
+                       o.authority, u.name AS staff_name
                 FROM closings c
                 JOIN clients cl ON cl.id = c.client_id
                 JOIN obligations o ON o.id = c.obligation_id
@@ -57,7 +58,7 @@ class Closing extends BaseModel
     {
         $stmt = self::pdo()->prepare(
             'SELECT c.*, cl.company_name, o.title AS obligation_title,
-                    o.reminder_days
+                    o.reminder_days, o.authority
              FROM closings c
              JOIN clients cl ON cl.id = c.client_id
              JOIN obligations o ON o.id = c.obligation_id
