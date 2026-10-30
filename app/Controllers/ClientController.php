@@ -29,13 +29,12 @@ class ClientController
             $u = Auth::requireAuth();
             $clientId = (int)$id;
 
-            // 🔒 Staff lazima awe na view_clients au edit_clients au upload perm yoyote
             if (($u['role'] ?? '') !== 'admin') {
                 $perms = $this->permissionsFor($u, $clientId);
                 $canView = in_array('view_clients', $perms, true)
                     || in_array('edit_clients', $perms, true)
                     || count(array_intersect($perms, [
-                        'upload_tra','upload_zra','upload_bpra','upload_zssf'
+                        'upload_tra', 'upload_zra', 'upload_bpra', 'upload_zssf'
                     ])) > 0;
 
                 if (!$canView) {
@@ -45,7 +44,10 @@ class ClientController
             }
 
             $c = Client::find($clientId);
-            if (!$c) Response::error('Client not found', 404);
+            if (!$c) {
+                Response::error('Client not found', 404);
+                return;
+            }
             Response::success($this->maskPasswords($c, $u));
         } catch (\Throwable $e) {
             Response::error('Failed to fetch client', 500, ['detail' => $e->getMessage()]);
@@ -55,13 +57,21 @@ class ClientController
     public function store(): void
     {
         try {
-            $u = Auth::requireAdmin();
-            $data = Request::body();
+            $u = Auth::requireAuth();
 
+            // Admin au staff mwenye add_clients
+            if (($u['role'] ?? '') !== 'admin') {
+                if (!$this->staffHasPermission($u['id'], 'add_clients')) {
+                    Response::error('Huna ruhusa ya kuongeza mteja', 403);
+                    return;
+                }
+            }
+
+            $data = Request::body();
             Validator::require($data, ['company_name']);
             $data['created_by'] = $u['id'];
 
-            foreach (['tra_attachment','zra_attachment','bpra_attachment','zssf_attachment'] as $f) {
+            foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $f) {
                 if (isset($data[$f]) && (is_array($data[$f]) && empty($data[$f]) || $data[$f] === '[]')) {
                     unset($data[$f]);
                 }
@@ -71,7 +81,6 @@ class ClientController
             $data = $this->handleUploads($data, null);
 
             $clientResult = Client::create($data);
-
             $clientId = is_array($clientResult) ? ($clientResult['id'] ?? 0) : (int)$clientResult;
 
             if (!$clientId) {
@@ -90,7 +99,7 @@ class ClientController
             echo json_encode([
                 'success' => true,
                 'message' => 'Client created',
-                'data' => $this->maskPasswords($client, $u)
+                'data'    => $this->maskPasswords($client, $u)
             ]);
             exit;
 
@@ -98,11 +107,11 @@ class ClientController
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to create client',
+                'success'      => false,
+                'message'      => 'Failed to create client',
                 'error_detail' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'file'         => $e->getFile(),
+                'line'         => $e->getLine(),
             ]);
             exit;
         }
@@ -111,28 +120,34 @@ class ClientController
     public function update(string $id): void
     {
         try {
-            // ✅ staff na admin wanaruhusiwa — permission ina-check ndani
             $u = Auth::requireAuth();
-
             $clientId = (int)$id;
             $existing = Client::find($clientId);
-            if (!$existing) Response::error('Client not found', 404);
+            if (!$existing) {
+                Response::error('Client not found', 404);
+                return;
+            }
 
-            $perms = $this->permissionsFor($u, $clientId);
+            $perms     = $this->permissionsFor($u, $clientId);
             $canEdit   = in_array('edit_clients', $perms, true);
             $canUpload = count(array_intersect($perms, [
-                'upload_tra','upload_zra','upload_bpra','upload_zssf'
+                'upload_tra', 'upload_zra', 'upload_bpra', 'upload_zssf'
             ])) > 0;
 
-            // 🔒 Kama hana edit WALA upload → 403
-            if (!$canEdit && !$canUpload) {
+            if (($u['role'] ?? '') !== 'admin' && !$canEdit && !$canUpload) {
                 Response::error('Huna ruhusa ya kubadilisha taarifa hizi', 403);
                 return;
             }
 
+            // Admin ana ruhusa kamili
+            if (($u['role'] ?? '') === 'admin') {
+                $canEdit = true;
+                $canUpload = true;
+            }
+
             $data = Request::body();
 
-            foreach (['tra_attachment','zra_attachment','bpra_attachment','zssf_attachment'] as $f) {
+            foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $f) {
                 if (isset($data[$f]) && (is_array($data[$f]) && empty($data[$f]) || $data[$f] === '[]')) {
                     unset($data[$f]);
                 }
@@ -140,24 +155,22 @@ class ClientController
 
             $data = $this->sanitizeDates($data);
 
-            // 🖊️ Sehemu za maandishi: ruhusu TU kama ana edit_clients
             if (!$canEdit) {
                 $textFields = [
-                    'company_name','location','industry','contact_person','phone','email',
-                    'financial_year_start','contract_start_date','contract_end_date',
-                    'total_contract_amount','amount_paid',
-                    'tra_number','tra_username','tra_reg_date','tra_start_date','tra_end_date',
-                    'zra_number','zra_username','zra_reg_date','zra_start_date','zra_end_date',
-                    'bpra_number','bpra_username','bpra_reg_date','bpra_start_date','bpra_end_date',
-                    'zssf_number','zssf_username','zssf_reg_date','zssf_start_date','zssf_end_date',
+                    'company_name', 'location', 'industry', 'contact_person', 'phone', 'email',
+                    'financial_year_start', 'contract_start_date', 'contract_end_date',
+                    'total_contract_amount', 'amount_paid',
+                    'tra_number', 'tra_username', 'tra_reg_date', 'tra_start_date', 'tra_end_date',
+                    'zra_number', 'zra_username', 'zra_reg_date', 'zra_start_date', 'zra_end_date',
+                    'bpra_number', 'bpra_username', 'bpra_reg_date', 'bpra_start_date', 'bpra_end_date',
+                    'zssf_number', 'zssf_username', 'zssf_reg_date', 'zssf_start_date', 'zssf_end_date',
                 ];
                 foreach ($textFields as $f) {
                     unset($data[$f]);
                 }
             }
 
-            // 🔐 Passwords: ruhusu tu kama ana edit_clients + value si tupu
-            foreach (['tra_password','zra_password','bpra_password','zssf_password'] as $pf) {
+            foreach (['tra_password', 'zra_password', 'bpra_password', 'zssf_password'] as $pf) {
                 if (!$canEdit) {
                     unset($data[$pf]);
                 } elseif (array_key_exists($pf, $data) && trim((string)$data[$pf]) === '') {
@@ -165,7 +178,6 @@ class ClientController
                 }
             }
 
-            // 📎 Uploads: zuia file kama hana upload perm husika
             $uploadMap = [
                 'tra_attachment'  => 'upload_tra',
                 'zra_attachment'  => 'upload_zra',
@@ -173,7 +185,7 @@ class ClientController
                 'zssf_attachment' => 'upload_zssf',
             ];
             foreach ($uploadMap as $field => $perm) {
-                if (!in_array($perm, $perms, true)) {
+                if (($u['role'] ?? '') !== 'admin' && !in_array($perm, $perms, true)) {
                     unset($_FILES[$field]);
                 }
             }
@@ -188,7 +200,6 @@ class ClientController
                 }
             }
 
-            // 🚫 Hakuna kilichobadilika?
             if (empty($data) && !$hasUpload) {
                 Response::error('Hakuna mabadiliko ya kuhifadhi au huna ruhusa', 403);
                 return;
@@ -206,11 +217,11 @@ class ClientController
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to update client',
+                'success'      => false,
+                'message'      => 'Failed to update client',
                 'error_detail' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'file'         => $e->getFile(),
+                'line'         => $e->getLine(),
             ]);
             exit;
         }
@@ -218,26 +229,35 @@ class ClientController
 
     public function destroy(string $id): void
     {
-        $u = Auth::requireAdmin();
         try {
-            Client::delete((int)$id);
-            ActivityLogger::log($u['id'], null, 'client_deleted', null, ['client_id' => $id]);
+            $u = Auth::requireAuth();
+            $clientId = (int)$id;
+
+            if (($u['role'] ?? '') !== 'admin') {
+                $perms = $this->permissionsFor($u, $clientId);
+                if (!in_array('delete_clients', $perms, true)) {
+                    // Angalia pia global
+                    if (!$this->staffHasPermission($u['id'], 'delete_clients')) {
+                        Response::error('Huna ruhusa ya kufuta mteja', 403);
+                        return;
+                    }
+                }
+            }
+
+            Client::delete($clientId);
+            ActivityLogger::log($u['id'], null, 'client_deleted', null, ['client_id' => $clientId]);
             Response::success(null, 'Client deleted');
         } catch (\Throwable $e) {
             Response::error('Failed to delete client', 500, ['detail' => $e->getMessage()]);
         }
     }
 
-    // =========================================================
-    // REVEAL PASSWORDS (Security Feature)
-    // =========================================================
     public function revealPasswords(string $id): void
     {
         try {
             $u = Auth::requireAuth();
             $clientId = (int)$id;
 
-            // 🔒 Staff lazima awe na view_passwords
             if (($u['role'] ?? '') !== 'admin') {
                 $perms = $this->permissionsFor($u, $clientId);
                 if (!in_array('view_passwords', $perms, true)) {
@@ -247,16 +267,14 @@ class ClientController
             }
 
             $body = Request::body();
-
             $systemPassword = $body['system_password'] ?? '';
+
             if (!$systemPassword) {
                 Response::error('Password ya mfumo inahitajika', 422);
                 return;
             }
 
             $db = Database::pdo();
-
-            // Chukua user wote kutoka DB ili tuone kama kuna column yoyote ya password
             $stmt = $db->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
             $stmt->execute([':id' => $u['id']]);
             $userRow = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -266,15 +284,12 @@ class ClientController
                 return;
             }
 
-            // Tafuta column ya password. Kawaida ni 'password' au 'password_hash'
             $hash = $userRow['password'] ?? $userRow['password_hash'] ?? null;
-
             if (!$hash) {
-                Response::error('Column ya password haipo kwenye table ya users. Columns zilizopo: ' . implode(', ', array_keys($userRow)), 500);
+                Response::error('Column ya password haipo kwenye table ya users', 500);
                 return;
             }
 
-            // Thibitisha password. Kama haikulingana, rudisha kosa.
             if (!password_verify($systemPassword, $hash)) {
                 Response::error('Password ya mfumo si sahihi', 401);
                 return;
@@ -286,7 +301,6 @@ class ClientController
                 return;
             }
 
-            // Rudisha password za mteja
             Response::success([
                 'tra_password'  => $client['tra_password'],
                 'zra_password'  => $client['zra_password'],
@@ -331,7 +345,10 @@ class ClientController
             $body = Request::body();
             $clientId = (int)$id;
             $assignments = $body['assignments'] ?? [];
-            if (!is_array($assignments)) Response::error('assignments must be an array', 422);
+            if (!is_array($assignments)) {
+                Response::error('assignments must be an array', 422);
+                return;
+            }
 
             $db = Database::pdo();
             $db->beginTransaction();
@@ -345,8 +362,8 @@ class ClientController
             ");
 
             foreach ($assignments as $a) {
-                $staffId  = (int)($a['staff_id'] ?? 0);
-                $role     = $a['role_type'] ?? '';
+                $staffId   = (int)($a['staff_id'] ?? 0);
+                $role      = $a['role_type'] ?? '';
                 $passwords = $a['can_view_passwords'] ?? [];
                 $upload    = !empty($a['can_upload']);
                 if (!$staffId || !$role) continue;
@@ -375,81 +392,151 @@ class ClientController
     // =========================================================
 
     /**
+     * Angalia kama staff ana permission fulani (global au client yoyote)
+     */
+    private function staffHasPermission(int $staffId, string $permission): bool
+    {
+        try {
+            $db = Database::pdo();
+            $stmt = $db->prepare("
+                SELECT permissions FROM staff_privileges
+                WHERE staff_id = :sid
+            ");
+            $stmt->execute([':sid' => $staffId]);
+
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $arr = $row['permissions'];
+                if (is_string($arr)) {
+                    $decoded = json_decode($arr, true);
+                    $arr = is_array($decoded) ? $decoded : [];
+                }
+                if (is_array($arr) && in_array($permission, $arr, true)) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('staffHasPermission error: ' . $e->getMessage());
+        }
+        return false;
+    }
+
+    /**
      * Rudi permissions za user kwa client fulani.
-     * Inachunguza task_permissions NA privileges, ikichukua union.
      */
     private function permissionsFor(array $user, int $clientId): array
     {
-        // Admin ana kila kitu
         if (($user['role'] ?? '') === 'admin') {
-            return ['edit_clients','view_clients','view_passwords',
-                    'upload_tra','upload_zra','upload_bpra','upload_zssf'];
+            return [
+                'edit_clients',
+                'view_clients',
+                'view_passwords',
+                'upload_tra',
+                'upload_zra',
+                'upload_bpra',
+                'upload_zssf',
+                'add_clients',
+                'delete_clients',
+            ];
         }
 
         $perms = [];
         $db = Database::pdo();
 
-        // 1) Kutoka task_permissions
+        // 1) task_permissions
         try {
             $stmt = $db->prepare("
                 SELECT role_type, can_view_passwords, can_upload
                 FROM task_permissions
-                WHERE client_id = :cid AND staff_id = :sid AND revoked_at IS NULL
+                WHERE client_id = :cid
+                  AND staff_id = :sid
+                  AND revoked_at IS NULL
                 LIMIT 1
             ");
-            $stmt->execute([':cid' => $clientId, ':sid' => $user['id']]);
+            $stmt->execute([
+                ':cid' => $clientId,
+                ':sid' => $user['id'],
+            ]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($row) {
                 $role = $row['role_type'] ?? '';
-                // Rekebisha kulingana na mantiki yako ya role_type
-                if (in_array($role, ['editor','manager','admin'], true)) {
-                    $perms[] = 'edit_clients';
-                }
                 $perms[] = 'view_clients';
 
+                $editRoles = [
+                    'editor', 'manager', 'admin',
+                    'all_authorities',
+                    'tra_annual', 'zra_annual', 'bpra_annual', 'zssf_annual',
+                ];
+                if (in_array($role, $editRoles, true)) {
+                    $perms[] = 'edit_clients';
+                }
+
                 if (!empty($row['can_upload'])) {
-                    $perms[] = 'upload_tra';
-                    $perms[] = 'upload_zra';
-                    $perms[] = 'upload_bpra';
-                    $perms[] = 'upload_zssf';
+                    if (in_array($role, ['tra_only', 'tra_annual', 'all_authorities', 'upload_only'], true)) {
+                        $perms[] = 'upload_tra';
+                    }
+                    if (in_array($role, ['zra_only', 'zra_annual', 'all_authorities', 'upload_only'], true)) {
+                        $perms[] = 'upload_zra';
+                    }
+                    if (in_array($role, ['bpra_only', 'bpra_annual', 'all_authorities', 'upload_only'], true)) {
+                        $perms[] = 'upload_bpra';
+                    }
+                    if (in_array($role, ['zssf_only', 'zssf_annual', 'all_authorities', 'upload_only'], true)) {
+                        $perms[] = 'upload_zssf';
+                    }
+                    if (in_array($role, ['all_authorities', 'upload_only'], true)) {
+                        $perms = array_merge($perms, ['upload_tra', 'upload_zra', 'upload_bpra', 'upload_zssf']);
+                    }
                 }
 
                 $pw = $row['can_view_passwords'] ?? '[]';
                 if (is_string($pw)) {
                     $decoded = json_decode($pw, true);
-                    if (is_array($decoded) && in_array('all', $decoded, true)) {
-                        $perms[] = 'view_passwords';
-                    }
-                } elseif (is_array($pw) && in_array('all', $pw, true)) {
+                    $pwList = is_array($decoded) ? $decoded : [];
+                } else {
+                    $pwList = is_array($pw) ? $pw : [];
+                }
+                if (in_array('all', $pwList, true) || count($pwList) > 0) {
                     $perms[] = 'view_passwords';
                 }
             }
         } catch (\Throwable $e) {
-            // Puuza — endelea na privileges
+            error_log('permissionsFor task_permissions error: ' . $e->getMessage());
         }
 
-        // 2) Kutoka privileges (kama table ipo)
+        // 2) staff_privileges (client-specific + global)
         try {
             $stmt2 = $db->prepare("
-                SELECT permissions FROM privileges
-                WHERE client_id = :cid AND staff_id = :sid AND is_active = TRUE
+                SELECT permissions
+                FROM staff_privileges
+                WHERE staff_id = :sid
+                  AND (client_id = :cid OR client_id IS NULL)
             ");
-            $stmt2->execute([':cid' => $clientId, ':sid' => $user['id']]);
+            $stmt2->execute([
+                ':cid' => $clientId,
+                ':sid' => $user['id'],
+            ]);
+
             foreach ($stmt2->fetchAll(\PDO::FETCH_ASSOC) as $p) {
-                $arr = is_string($p['permissions']) ? json_decode($p['permissions'], true) : $p['permissions'];
-                if (is_array($arr)) $perms = array_merge($perms, $arr);
+                $arr = $p['permissions'];
+                if (is_string($arr)) {
+                    $decoded = json_decode($arr, true);
+                    $arr = is_array($decoded) ? $decoded : [];
+                }
+                if (is_array($arr)) {
+                    $perms = array_merge($perms, $arr);
+                }
             }
         } catch (\Throwable $e) {
-            // Table haipo — puuza
+            error_log('permissionsFor staff_privileges error: ' . $e->getMessage());
         }
 
-        return array_values(array_unique($perms));
+        return array_values(array_unique(array_filter($perms)));
     }
 
     private function maskPasswords(array $c, array $user): array
     {
-        foreach (['tra_password','zra_password','bpra_password','zssf_password'] as $f) {
+        foreach (['tra_password', 'zra_password', 'bpra_password', 'zssf_password'] as $f) {
             if (!empty($c[$f])) {
                 $c[$f] = '••••••••';
             }
@@ -482,9 +569,9 @@ class ClientController
             'bpra_attachment' => 'bpra',
             'zssf_attachment' => 'zssf',
         ];
-        $allowedExt = ['pdf','jpg','jpeg','png','doc','docx'];
+        $allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
         $allowedMime = [
-            'application/pdf','image/jpeg','image/png',
+            'application/pdf', 'image/jpeg', 'image/png',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ];
@@ -500,10 +587,10 @@ class ClientController
             $file = $_FILES[$field];
 
             if (is_array($file['name'])) {
-                $file['name'] = $file['name'][0];
+                $file['name']     = $file['name'][0];
                 $file['tmp_name'] = $file['tmp_name'][0];
-                $file['size'] = $file['size'][0];
-                $file['error'] = $file['error'][0];
+                $file['size']     = $file['size'][0];
+                $file['error']    = $file['error'][0];
             }
 
             if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -515,7 +602,7 @@ class ClientController
                 return $data;
             }
 
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $mime = mime_content_type($file['tmp_name']) ?: '';
             if (!in_array($ext, $allowedExt, true) || !in_array($mime, $allowedMime, true)) {
                 Response::error("File type not allowed ($field)", 422);

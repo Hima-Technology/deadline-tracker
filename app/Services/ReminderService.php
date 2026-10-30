@@ -12,12 +12,12 @@ class ReminderService
     {
         $pdo = Database::pdo();
         $obligations = $pdo->query(
-            'SELECT o.*, c.financial_year_end 
+            'SELECT o.*, c.financial_year_start 
              FROM obligations o 
              JOIN clients c ON c.id = o.client_id 
              WHERE o.is_active = TRUE'
         )->fetchAll();
-        
+
         $count = 0;
 
         foreach ($obligations as $o) {
@@ -25,17 +25,23 @@ class ReminderService
                 $period = self::currentPeriod($o['frequency']);
                 if ($period === null) continue;
 
-                if ($o['frequency'] === 'annual' && !empty($o['financial_year_end'])) {
-                    $fye = explode('-', $o['financial_year_end']);
-                    $month = (int)$fye[0];
-                    $day = (int)$fye[1];
-                    $year = (int)date('Y');
-                    
-                    $dueDateObj = new \DateTime("{$year}-{$month}-{$day}");
-                    if ($dueDateObj < new \DateTime('today')) {
-                        $year++;
+                // Annual: tumia financial_year_start (month + day) kama reference
+                if ($o['frequency'] === 'annual' && !empty($o['financial_year_start'])) {
+                    try {
+                        $fys = new \DateTime($o['financial_year_start']);
+                        $month = (int)$fys->format('n');
+                        $day   = (int)$fys->format('j');
+                        $year  = (int)date('Y');
+
+                        $dueDateObj = new \DateTime(sprintf('%04d-%02d-%02d', $year, $month, $day));
+                        if ($dueDateObj < new \DateTime('today')) {
+                            $year++;
+                            $dueDateObj = new \DateTime(sprintf('%04d-%02d-%02d', $year, $month, $day));
+                        }
+                        $dueDate = $dueDateObj->format('Y-m-d');
+                    } catch (\Throwable $e) {
+                        $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
                     }
-                    $dueDate = sprintf('%04d-%02d-%02d', $year, $month, $day);
                 } else {
                     $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
                 }
@@ -47,15 +53,18 @@ class ReminderService
                         SET due_date = EXCLUDED.due_date, assigned_staff_id = EXCLUDED.assigned_staff_id";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
-                    $o['id'], $o['client_id'], $o['default_staff_id'],
-                    $period, $dueDate
+                    $o['id'],
+                    $o['client_id'],
+                    $o['default_staff_id'] ?: null,
+                    $period,
+                    $dueDate,
                 ]);
-                
+
                 if ($stmt->rowCount() > 0) {
                     $count++;
                 }
             } catch (\Throwable $e) {
-                echo "Kosa kwenye Obligation ID {$o['id']}: " . $e->getMessage() . PHP_EOL;
+                error_log("Kosa kwenye Obligation ID {$o['id']}: " . $e->getMessage());
             }
         }
         return $count;
@@ -118,7 +127,7 @@ class ReminderService
             $dueDate = new \DateTime($c['due_date']);
             $today   = new \DateTime('today');
             $diff    = (int)$today->diff($dueDate)->format('%r%a');
-            
+
             $offsets = json_decode($c['reminder_days'], true) ?: [10, 7, 3, 1, 0];
 
             foreach ($offsets as $offset) {
@@ -131,7 +140,7 @@ class ReminderService
             if ($diff < 0) {
                 $result = self::deliver($c, 0, 'escalation');
                 if ($result) $stats['escalations_sent']++; else $stats['failed']++;
-                
+
                 foreach ($pdo->query("SELECT email, phone FROM users WHERE role='admin'") as $admin) {
                     self::deliverTo($c, $admin, 'escalation_admin');
                 }
@@ -189,7 +198,7 @@ class ReminderService
             if ($res['ok']) $sent = true;
         }
 
-        // 3. SMS (Mpya)
+        // 3. SMS
         if (!empty($recipient['phone'])) {
             $res = SmsService::send($recipient['phone'], $text);
             ReminderLog::create([
