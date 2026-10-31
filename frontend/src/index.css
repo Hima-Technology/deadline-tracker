@@ -23,3 +23,248 @@ body {
   background-color: #faf8ff;
   color: #131b2e;
 }
+
+html[data-app-font] body {
+  font-family: var(--app-font, "Space Grotesk", sans-serif);
+}
+
+html[data-app-font] body *:not(.material-symbols-outlined) {
+  font-family: var(--app-font, "Space Grotesk", sans-serif) !important;
+}
+
+html.dark,
+html.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  color-scheme: dark;
+}
+
+html.dark [class~="bg-white"],
+html.dark [class~="bg-white/95"] {
+  background-color: #1e293b !important;
+}
+
+html.dark [class~="bg-[#faf8ff]"],
+html.dark [class~="bg-slate-50"],
+html.dark [class~="bg-slate-50/50"],
+html.dark [class~="bg-slate-50/40"],
+html.dark [class~="bg-slate-100"],
+html.dark [class~="bg-gray-50"] {
+  background-color: #0f172a !important;
+}
+
+html.dark [class~="bg-cyan-50"],
+html.dark [class~="bg-emerald-50"],
+html.dark [class~="bg-amber-50"],
+html.dark [class~="bg-rose-50"],
+html.dark [class~="bg-red-50"],
+html.dark [class~="bg-green-50"],
+html.dark [class~="bg-blue-50"],
+html.dark [class~="bg-indigo-50"],
+html.dark [class~="bg-purple-50"],
+html.dark [class~="bg-orange-50"],
+html.dark [class~="bg-yellow-50"] {
+  background-color: #263f55 !important;
+}
+
+html.dark [class~="bg-cyan-100"],
+html.dark [class~="bg-emerald-100"],
+html.dark [class~="bg-green-100"],
+html.dark [class~="bg-blue-100"],
+html.dark [class~="bg-indigo-100"],
+html.dark [class~="bg-purple-100"],
+html.dark [class~="bg-orange-100"] {
+  background-color: #164e63 !important;
+}
+
+html.dark [class~="bg-rose-50"],
+html.dark [class~="bg-red-50"] {
+  background-color: #4c2432 !important;
+}
+
+html.dark [class~="bg-emerald-50"],
+html.dark [class~="bg-green-50"] {
+  background-color: #163d36 !important;
+}
+
+html.dark [class~="bg-amber-50"],
+html.dark [class~="bg-yellow-50"],
+html.dark [class~="bg-orange-50"] {
+  background-color: #49391e !important;
+}
+
+html.dark [class~="bg-slate-100"] {
+  background-color: #334155 !important;
+}
+
+html.dark [class~="text-slate-900"],
+html.dark [class~="text-slate-800"],
+html.dark [class~="text-slate-700"],
+html.dark [class~="text-gray-700"],
+html.dark [class~="text-gray-600"] {
+  color: #e2e8f0 !important;
+}
+
+html.dark [class~="text-slate-600"],
+html.dark [class~="text-slate-500"],
+html.dark [class~="text-gray-500"],
+html.dark [class~="text-gray-400"] {
+  color: #cbd5e1 !important;
+}
+
+html.dark [class~="text-red-600"],
+html.dark [class~="text-red-700"],
+html.dark [class~="text-rose-600"],
+html.dark [class~="text-rose-700"],
+html.dark [class~="text-rose-800"] {
+  color: #fda4af !important;
+}
+
+html.dark [class~="text-emerald-600"],
+html.dark [class~="text-emerald-700"],
+html.dark [class~="text-green-600"],
+html.dark [class~="text-green-700"] {
+  color: #86efac !important;
+}
+
+html.dark [class~="text-amber-600"],
+html.dark [class~="text-amber-700"],
+html.dark [class~="text-yellow-600"],
+html.dark [class~="text-orange-600"] {
+  color: #fcd34d !important;
+}
+
+html.dark [class~="text-cyan-600"],
+html.dark [class~="text-cyan-700"],
+html.dark [class~="text-blue-600"],
+html.dark [class~="text-blue-700"],
+html.dark [class~="text-indigo-600"],
+html.dark [class~="text-purple-600"] {
+  color: #7dd3fc !important;
+}
+
+html.dark [class~="text-overdue"] {
+  color: #fda4af !important;
+}
+
+html.dark [class~="text-soon"] {
+  color: #fcd34d !important;
+}
+
+html.dark [class~="text-closed"] {
+  color: #86efac !important;
+}
+
+html.dark [class~="border-gray-100"],
+html.dark [class~="border-gray-200"],
+html.dark [class~="border-slate-100"],
+html.dark [class~="border-slate-200"],
+html.dark [class~="border-gray-300"] {
+  border-color: #334155 !important;
+}
+
+html.dark [class~="border-red-200"],
+html.dark [class~="border-rose-200"],
+html.dark [class~="border-green-200"],
+html.dark [class~="border-emerald-200"],
+html.dark [class~="border-amber-200"],
+html.dark [class~="border-cyan-200"],
+html.dark [class~="border-blue-200"],
+html.dark [class~="border-indigo-200"],
+html.dark [class~="border-purple-200"],
+html.dark [class~="border-orange-200"] {
+  border-color: #475569 !important;
+}
+
+html.dark .dashboard-welcome {
+  color: #0f172a !important;
+}
+
+html.dark .dashboard-welcome [class~="text-slate-900"],
+html.dark .dashboard-welcome [class~="text-slate-800"],
+html.dark .dashboard-welcome [class~="text-slate-700"] {
+  color: #0f172a !important;
+}
+
+html.dark .dashboard-welcome [class~="text-slate-600"],
+html.dark .dashboard-welcome [class~="text-slate-500"],
+html.dark .dashboard-welcome [class~="text-slate-400"] {
+  color: #475569 !important;
+}
+
+html.dark .dashboard-welcome [class~="text-cyan-700"],
+html.dark .dashboard-welcome [class~="text-emerald-700"] {
+  color: #0e7490 !important;
+}
+
+html.dark .dashboard-welcome [class~="bg-emerald-50"] {
+  background-color: #ecfdf5 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #cbd5e1;
+}
+
+html.dark [class*="hover:bg-slate-100"]:hover,
+html.dark [class*="hover:bg-slate-200"]:hover,
+html.dark [class*="hover:bg-gray-50"]:hover,
+html.dark [class*="hover:bg-slate-50"]:hover,
+html.dark [class*="hover:bg-white"]:hover {
+  background-color: #334155 !important;
+}
+
+html.dark [class*="hover:bg-slate-50/70"]:hover,
+html.dark [class*="hover:bg-slate-50/80"]:hover {
+  background-color: #263f55 !important;
+}
+
+html.dark [class*="hover:text-slate-900"]:hover,
+html.dark [class*="hover:text-slate-800"]:hover {
+  color: #f1f5f9 !important;
+}
+
+html.dark tr[class*="hover:bg-slate-50"]:hover {
+  background-color: #263f55 !important;
+}
+
+html.dark aside nav a:not([aria-current="page"]):hover {
+  background-color: #123b50 !important;
+  color: #67e8f9 !important;
+  box-shadow: inset 3px 0 0 #06b6d4;
+}
+
+html.dark button[class*="hover:bg-slate-"]:hover,
+html.dark button[class*="hover:bg-gray-"]:hover {
+  background-color: #164e63 !important;
+  color: #ecfeff !important;
+}
+
+.login-glow-frame::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 300deg,
+    #06b6d4 320deg,
+    #a5f3fc 330deg,
+    #818cf8 340deg,
+    transparent 360deg
+  );
+  animation: none;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 5px rgb(6 182 212 / 70%));
+}

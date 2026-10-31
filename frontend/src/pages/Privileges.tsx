@@ -4,6 +4,7 @@ import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { Client, User } from '../types'
+import { useLanguage } from '../context/LanguageContext'
 
 const AVAILABLE_PERMISSIONS = [
   { key: 'view_clients',      label: 'View Clients' },
@@ -21,6 +22,7 @@ const AVAILABLE_PERMISSIONS = [
 ]
 
 export default function Privileges() {
+  const { t } = useLanguage()
   const [privileges, setPrivileges] = useState<any[]>([])
   const [staff, setStaff] = useState<User[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -135,7 +137,7 @@ export default function Privileges() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">Staff Privileges</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Staff Privileges')}</h2>
           <p className="text-xs text-slate-500 font-mono mt-1">Assign system permissions to staff and track notification delivery</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white transition-all text-xs font-bold uppercase rounded-sm">
@@ -152,7 +154,7 @@ export default function Privileges() {
             <tr>
               <th className="px-4 py-4">Staff Name</th>
               <th className="px-4 py-4">Assigned Permissions</th>
-              <th className="px-4 py-4">Target Client</th>
+              <th className="px-4 py-4">{t('Target Client')}</th>
               <th className="px-4 py-4">Notifications</th>
               <th className="px-4 py-4 text-right">Actions</th>
             </tr>
@@ -208,7 +210,7 @@ export default function Privileges() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Staff Member</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Staff Member')}</label>
               <select className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                 value={form.staff_id} onChange={e => setForm({ ...form, staff_id: Number(e.target.value) })}>
                 <option value={0}>— Chagua Staff —</option>
@@ -216,7 +218,7 @@ export default function Privileges() {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Target Client (Optional)</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Target Client (Optional)')}</label>
               <select className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                 value={form.client_id} onChange={e => setForm({ ...form, client_id: Number(e.target.value) })}>
                 <option value={0}>— Global (Wateja Wote) —</option>
@@ -265,13 +267,13 @@ export default function Privileges() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Additional Details</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Additional Details')}</label>
             <textarea className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm" rows={2}
               value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Maelezo ya ziada..." />
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-            <button className="px-4 py-2 bg-white border border-gray-200 text-slate-600 text-xs font-bold uppercase rounded-sm" onClick={() => setModal(false)}>Cancel</button>
+            <button className="px-4 py-2 bg-white border border-gray-200 text-slate-600 text-xs font-bold uppercase rounded-sm" onClick={() => setModal(false)}>{t('Cancel')}</button>
             <button className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase rounded-sm disabled:opacity-50" onClick={save} disabled={busy}>
               {busy ? 'Saving...' : (editingId ? 'Update Privilege' : 'Assign & Notify')}
             </button>
@@ -300,7 +302,7 @@ export default function Privileges() {
           )}
         </div>
         <div className="flex justify-end pt-4 border-t border-gray-100 mt-2">
-          <button className="px-4 py-2 bg-slate-800 text-white text-xs font-bold uppercase rounded-sm" onClick={() => setViewLogsModal(false)}>Close Logs</button>
+          <button className="px-4 py-2 bg-slate-800 text-white text-xs font-bold uppercase rounded-sm" onClick={() => setViewLogsModal(false)}>{t('Close Logs')}</button>
         </div>
       </Modal>
     </div>

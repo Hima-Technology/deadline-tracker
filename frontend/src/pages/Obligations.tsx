@@ -5,6 +5,9 @@ import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { Client, Obligation, User, Frequency } from '../types'
+import { useLanguage } from '../context/LanguageContext'
+import { useAuth } from '../context/AuthContext'
+import { escapeHtml, openPrintDocument } from '../utils/printDocument'
 
 interface FormData {
   client_id: number
@@ -24,6 +27,8 @@ const empty: FormData = {
 type SortKey = 'title' | 'client' | 'frequency' | 'due_day' | 'staff'
 
 export default function Obligations() {
+  const { t } = useLanguage()
+  const { user } = useAuth()
   const [rows, setRows] = useState<Obligation[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [staff, setStaff] = useState<User[]>([])
@@ -151,6 +156,47 @@ export default function Obligations() {
     return staff.find((s) => s.id === id)?.name || '—'
   }
 
+  function reminderDaysLabel(value: unknown): string {
+    if (Array.isArray(value)) return value.join(', ') || '—'
+    if (typeof value !== 'string' || !value.trim()) return '—'
+
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed.join(', ') || '—'
+      return String(parsed ?? '—')
+    } catch {
+      return value
+    }
+  }
+
+  function printObligation(obligation: Obligation) {
+    const row = (label: string, value: string | number | boolean | null | undefined) =>
+      `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value === null || value === undefined || value === '' ? '—' : value)}</td></tr>`
+    const content = `
+      <h1>${escapeHtml(obligation.title)}</h1>
+      <p>Obligation Record · ID: SBC-${String(obligation.id).padStart(4, '0')}</p>
+      <section>
+        <h2>Obligation Details</h2>
+        <table>
+          ${row('Client', clientName(obligation.client_id))}
+          ${row('Institution', obligation.authority || '—')}
+          ${row('Document Type', obligation.document_type)}
+          ${row('Frequency', obligation.frequency.replace('_', ' '))}
+          ${row('Due Day', `${obligation.due_day} of the period`)}
+          ${row('Next Deadline', calculateDeadline(obligation).dateStr)}
+          ${row('Confirmed Due Date', obligation.confirmed_due_date)}
+          ${row('Assigned Staff', staffName(obligation.default_staff_id))}
+          ${row('Filing Status', obligation.filing_status)}
+          ${row('Reminder Days', reminderDaysLabel(obligation.reminder_days))}
+          ${row('Status', obligation.is_active ? 'Active' : 'Inactive')}
+        </table>
+      </section>
+    `
+    if (!openPrintDocument(`Obligation - ${obligation.title}`, content, user?.name || 'Admin')) {
+      showToast('Ruhusu pop-ups ili kuchapisha obligation', 'error')
+    }
+  }
+
   // DATA TABLE LOGIC - Nimebadilisha hapa kutumia String()
   const filteredData = useMemo(() => {
     return rows.filter((o) => {
@@ -249,11 +295,11 @@ export default function Obligations() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">SYS.OPS // DEADLINES</span>
+            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">{t('SYS.OPS // DEADLINES')}</span>
             <span className="text-gray-400 text-[10px]">//</span>
             <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">DATA: OBLIGATIONS</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">Obligations Registry</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Obligations Registry')}</h2>
         </div>
         
         <button 
@@ -350,6 +396,13 @@ export default function Obligations() {
                   </button>
                   <button 
                     className="p-1.5 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded transition-colors" 
+                    onClick={() => printObligation(o)}
+                    title="Print"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">print</span>
+                  </button>
+                  <button 
+                    className="p-1.5 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded transition-colors" 
                     onClick={() => openEdit(o)}
                     title="Edit"
                   >
@@ -407,7 +460,7 @@ export default function Obligations() {
           {error && <div className="text-xs text-red-600 bg-red-50 p-2 border border-red-100 rounded font-mono">{error}</div>}
           
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Client</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Client')}</label>
             <select 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm"
               value={form.client_id}
@@ -419,7 +472,7 @@ export default function Obligations() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Title / Task Name</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Title / Task Name')}</label>
             <input 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm" 
               value={form.title}
@@ -429,20 +482,20 @@ export default function Obligations() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Frequency</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Frequency')}</label>
               <select 
                 className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm uppercase font-bold text-slate-700"
                 value={form.frequency}
                 onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}
               >
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-                <option value="one_off">One-off</option>
+                <option value="monthly">{t('Monthly')}</option>
+                <option value="quarterly">{t('Quarterly')}</option>
+                <option value="annual">{t('Annual')}</option>
+                <option value="one_off">{t('One-off')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Due Day</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Due Day')}</label>
               <input 
                 className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm font-mono" 
                 type="number" min={1} max={31} 
@@ -453,7 +506,7 @@ export default function Obligations() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Default Staff</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Default Staff')}</label>
             <select 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm"
               value={form.default_staff_id}
@@ -545,7 +598,14 @@ export default function Obligations() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white text-xs font-bold uppercase hover:bg-cyan-700 transition-colors shadow-sm rounded-sm"
+                  onClick={() => printObligation(viewObligation)}
+                >
+                  <span className="material-symbols-outlined text-[16px]">print</span>
+                  Print
+                </button>
                 <button className="px-6 py-2 bg-slate-800 text-white text-xs font-bold uppercase hover:bg-slate-700 transition-colors shadow-sm rounded-sm" onClick={() => setViewObligation(null)}>Close Record</button>
               </div>
             </div>

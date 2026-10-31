@@ -4,9 +4,12 @@ import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import Badge from '../components/Badge'
-import type { Closing } from '../types'
+import { AUTHORITIES } from '../types'
+import type { Authority, Closing } from '../types'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Closings() {
+  const { t } = useLanguage()
   const [rows, setRows] = useState<Closing[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,6 +31,7 @@ export default function Closings() {
   const [closeClosing, setCloseClosing] = useState<Closing | null>(null)
   const [closeRef, setCloseRef] = useState('')
   const [closeFile, setCloseFile] = useState<File | null>(null)
+  const [closeAuthorities, setCloseAuthorities] = useState<Authority[]>([])
 
   // Toast State
   const [toast, setToast] = useState({ show: false, message: '', type: 'loading' as 'loading' | 'success' | 'error' })
@@ -102,6 +106,21 @@ export default function Closings() {
     setCloseClosing(c)
     setCloseRef('')
     setCloseFile(null)
+    setCloseAuthorities(
+      c.authority && AUTHORITIES.some(({ value }) => value === c.authority)
+        ? [c.authority as Authority]
+        : c.authority === 'ALL'
+          ? AUTHORITIES.map(({ value }) => value)
+          : []
+    )
+  }
+
+  function toggleCloseAuthority(authority: Authority) {
+    setCloseAuthorities(current =>
+      current.includes(authority)
+        ? current.filter(value => value !== authority)
+        : [...current, authority]
+    )
   }
 
   async function markClosed() {
@@ -113,6 +132,7 @@ export default function Closings() {
       fd.append('_method', 'PUT') // <-- Muhimu kwa PHP kupokea FormData
       fd.append('status', 'closed')
       fd.append('reference_number', closeRef)
+      fd.append('authorities', JSON.stringify(closeAuthorities))
       if (closeFile) fd.append('proof', closeFile)
 
       await api.post(`/closings/${closeClosing.id}`, fd, {
@@ -156,11 +176,11 @@ export default function Closings() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">SYS.OPS // TELEMETRY</span>
+            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">{t('SYS.OPS // TELEMETRY')}</span>
             <span className="text-gray-400 text-[10px]">//</span>
             <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">DATA: CLOSINGS</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">Closings Radar</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Closings Radar')}</h2>
         </div>
       </div>
 
@@ -186,10 +206,10 @@ export default function Closings() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           >
             <option value="">All Statuses</option>
-            <option value="open">Open</option>
+            <option value="open">{t('Open')}</option>
             <option value="due_soon">Due Soon</option>
-            <option value="overdue">Overdue</option>
-            <option value="closed">Closed</option>
+            <option value="overdue">{t('Overdue')}</option>
+            <option value="closed">{t('Closed')}</option>
           </select>
         </div>
         
@@ -204,12 +224,12 @@ export default function Closings() {
           <thead className="bg-slate-50 text-[10px] uppercase font-mono tracking-wider text-gray-500 border-b border-gray-200">
             <tr>
               <th className="px-4 py-4 font-semibold">Company / Client</th>
-              <th className="px-4 py-4 font-semibold">Obligation</th>
+              <th className="px-4 py-4 font-semibold">{t('Obligation')}</th>
               <th className="px-4 py-4 font-semibold text-center">Period</th>
               <th className="px-4 py-4 font-semibold text-center">Due Date</th>
-              <th className="px-4 py-4 font-semibold">Assigned To</th>
+              <th className="px-4 py-4 font-semibold">{t('Assigned To')}</th>
               <th className="px-4 py-4 font-semibold text-center">Status</th>
-              <th className="px-4 py-4 font-semibold text-right">Actions</th>
+              <th className="px-4 py-4 font-semibold text-right">{t('Actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -339,6 +359,12 @@ export default function Closings() {
                 <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">Obligation / Task</span>
                 <span className="text-sm font-semibold text-slate-700">{viewClosing.obligation_title}</span>
               </div>
+              {viewClosing.authorities && viewClosing.authorities.length > 0 && (
+                <div className="p-3 border border-gray-100 bg-white sm:col-span-2">
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">{t('Institutions Closed')}</span>
+                  <span className="text-sm font-semibold text-slate-700">{viewClosing.authorities.join(', ')}</span>
+                </div>
+              )}
               <div className="p-3 border border-gray-100 bg-white">
                 <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">Period</span>
                 <span className="text-sm font-semibold text-slate-700 font-mono">{viewClosing.period_label}</span>
@@ -356,7 +382,7 @@ export default function Closings() {
                 <span className="text-sm font-semibold text-slate-700 font-mono">{viewClosing.reference_number || 'N/A'}</span>
               </div>
               <div className="p-3 border border-gray-100 bg-white sm:col-span-2">
-                <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">Assigned Operator</span>
+                <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">{t('Assigned Operator')}</span>
                 <span className="text-sm font-semibold text-slate-700">{viewClosing.staff_name || 'Unassigned'}</span>
               </div>
             </div>
@@ -376,7 +402,7 @@ export default function Closings() {
               Updating reference for <strong>{editClosing.company_name}</strong> ({editClosing.period_label})
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Reference Number</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Reference Number')}</label>
               <input 
                 className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm font-mono" 
                 value={editRef}
@@ -413,8 +439,39 @@ export default function Closings() {
             <div className="p-3 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800 font-mono">
               Closing task for <strong>{closeClosing.company_name}</strong> ({closeClosing.period_label})
             </div>
+            <fieldset>
+              <legend className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Choose institution(s) *</legend>
+              <div className="flex flex-wrap gap-2">
+                {AUTHORITIES.map(({ value, label }) => (
+                  <label key={value} className={`px-3 py-2 border rounded-sm text-xs font-bold cursor-pointer ${
+                    closeAuthorities.includes(value)
+                      ? 'bg-cyan-50 border-cyan-400 text-cyan-700'
+                      : 'bg-white border-gray-200 text-gray-600'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      className="mr-2"
+                      checked={closeAuthorities.includes(value)}
+                      onChange={() => toggleCloseAuthority(value)}
+                    />
+                    {label}
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  className="px-3 py-2 border border-gray-200 rounded-sm text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  onClick={() => setCloseAuthorities(
+                    closeAuthorities.length === AUTHORITIES.length
+                      ? []
+                      : AUTHORITIES.map(({ value }) => value)
+                  )}
+                >
+                  {closeAuthorities.length === AUTHORITIES.length ? 'Clear all' : 'Select all'}
+                </button>
+              </div>
+            </fieldset>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Reference Number *</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Reference Number *')}</label>
               <input 
                 className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm font-mono" 
                 value={closeRef}
@@ -424,7 +481,7 @@ export default function Closings() {
             </div>
             
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Proof (PDF / Image, optional)</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Proof (PDF / Image, optional)')}</label>
               <input 
                 className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm file:mr-4 file:py-1 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" 
                 type="file" 
@@ -440,7 +497,7 @@ export default function Closings() {
               <button 
                 className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase hover:bg-cyan-400 transition-colors shadow-sm rounded-sm flex items-center gap-2 disabled:opacity-50" 
                 onClick={markClosed} 
-                disabled={busy || !closeRef.trim()}
+                disabled={busy || !closeRef.trim() || closeAuthorities.length === 0}
               >
                 {busy ? (
                   <>

@@ -1,4 +1,5 @@
 import type { Status } from '../types'
+import { useLanguage } from '../context/LanguageContext'
 
 const map: Record<Status, { label: string; cls: string }> = {
   open:     { label: 'Open',     cls: 'bg-slate-100 text-slate-700' },
@@ -9,9 +10,10 @@ const map: Record<Status, { label: string; cls: string }> = {
 
 export default function Badge({ status }: { status: Status }) {
   const { label, cls } = map[status]
+  const { t } = useLanguage()
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${cls}`}>
-      {label}
+      {t(label)}
     </span>
   )
 }

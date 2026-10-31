@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api, { errMsg } from '../api/client'
 import type { Counters, StaffPerf, Client, Closing } from '../types'
 import CalendarView from '../components/CalendarView'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Dashboard() {
   const [counters, setCounters] = useState<Counters | null>(null)
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   const nav = useNavigate()
+  const { t } = useLanguage()
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -68,7 +70,7 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
         <span className="material-symbols-outlined text-cyan-500 text-3xl animate-spin">progress_activity</span>
-        <p className="text-cyan-700 text-xs font-mono uppercase tracking-wider">Loading dashboard…</p>
+        <p className="text-cyan-700 text-xs font-mono uppercase tracking-wider">{t('Loading dashboard…')}</p>
       </div>
     )
   }
@@ -150,7 +152,7 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-rose-600 text-[20px]">priority_high</span>
             </div>
             <div>
-              <p className="text-sm font-bold text-rose-800">Overdue work needs attention</p>
+              <p className="text-sm font-bold text-rose-800">{t('Overdue work needs attention')}</p>
               <p className="text-xs text-rose-600 mt-0.5">
                 {overdueTasks} task{overdueTasks !== 1 ? 's are' : ' is'} past the due date.
               </p>
@@ -165,90 +167,113 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Page header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-50 border border-cyan-100 text-[10px] font-bold uppercase tracking-wider text-cyan-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-              Live
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
-              {dateStr}
-            </span>
+      {/* Dashboard welcome panel */}
+      <section className="dashboard-welcome relative overflow-hidden rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-sky-50 px-5 py-6 text-slate-900 shadow-lg shadow-cyan-900/5 sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-1/3 h-28 w-28 rounded-full bg-blue-300/15 blur-2xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                {t('Live overview')}
+              </span>
+              <span className="text-xs text-slate-500">{dateStr}</span>
+            </div>
+            <h1 className="font-[Space_Grotesk] text-2xl font-bold tracking-tight sm:text-3xl">
+              {t('Business overview')}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm text-slate-600">
+              {t('Snapshot of clients, deadlines, and team performance.')}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk]">
-            Business overview
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Snapshot of clients, deadlines, and team performance.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <span className="material-symbols-outlined text-slate-400 text-[18px]">schedule</span>
-            <span className="text-xs font-mono font-semibold text-slate-700 tabular-nums">{clockStr}</span>
-            <span className="text-[10px] text-slate-400 font-mono">EAT</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm">
+              <span className="material-symbols-outlined text-cyan-700">schedule</span>
+              <span className="text-sm font-semibold tabular-nums">{clockStr}</span>
+              <span className="text-[10px] text-slate-500">EAT</span>
+            </div>
+            <button
+              onClick={load}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:border-cyan-200 hover:bg-cyan-50"
+            >
+              <span className="material-symbols-outlined text-[17px]">refresh</span>
+              {t('Refresh')}
+            </button>
+            <button
+              onClick={() => nav('/clients')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-lg shadow-cyan-900/15 transition-all hover:bg-cyan-500 active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-[17px]">domain_add</span>
+              {t('Add client')}
+            </button>
           </div>
-          <button
-            onClick={load}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/50 rounded-lg text-xs font-bold uppercase text-slate-700 transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[16px] text-cyan-600">refresh</span>
-            Refresh
-          </button>
-          <button
-            onClick={() => nav('/clients')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-xs font-bold uppercase shadow-md shadow-cyan-500/25 transition-all active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-[16px]">domain_add</span>
-            Add client
-          </button>
         </div>
-      </div>
+        <div className="relative mt-6 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-4">
+          {[
+            { label: 'Total clients', value: totalClients, icon: 'groups' },
+            { label: 'Open tasks', value: openTasks, icon: 'pending_actions' },
+            { label: 'Due soon', value: dueSoon, icon: 'schedule' },
+            { label: 'Overdue', value: overdueTasks, icon: 'warning' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-[19px] text-cyan-700">{item.icon}</span>
+              <div>
+                <p className="text-lg font-bold leading-tight tabular-nums">{item.value}</p>
+                <p className="text-[10px] text-slate-500">{t(item.label)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <div
             key={k.label}
-            className={`relative bg-white rounded-xl border border-slate-100 shadow-sm ring-1 ${k.ring} overflow-hidden`}
+            className={`group relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${k.ring}`}
           >
-            <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${k.accent}`} />
-            <div className="p-4 pt-5">
+            <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${k.accent}`} />
+            <div className="p-5 pl-6">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-slate-500 truncate">{k.label}</p>
+                  <p className="truncate text-xs font-semibold text-slate-500">{t(k.label)}</p>
                   {k.hint && (
-                    <p className="text-[10px] text-slate-400 mt-0.5">{k.hint}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{t(k.hint)}</p>
                   )}
                 </div>
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${k.iconBg}`}>
-                  <span className="material-symbols-outlined text-[20px]">{k.icon}</span>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${k.iconBg}`}>
+                  <span className="material-symbols-outlined text-[21px]">{k.icon}</span>
                 </div>
               </div>
-              <p className={`mt-3 text-3xl font-bold tracking-tight tabular-nums font-[Space_Grotesk] ${k.valueColor}`}>
+              <p className={`mt-4 text-3xl font-bold tracking-tight tabular-nums font-[Space_Grotesk] ${k.valueColor}`}>
                 {k.value}
               </p>
+              <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full w-1/2 rounded-full bg-gradient-to-r ${k.accent} transition-all group-hover:w-3/4`} />
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Quick stats strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Open', value: openTasks, color: 'text-slate-800', bg: 'bg-slate-50' },
-          { label: 'Due soon', value: dueSoon, color: 'text-amber-700', bg: 'bg-amber-50' },
-          { label: 'Overdue', value: overdueTasks, color: 'text-rose-700', bg: 'bg-rose-50' },
+          { label: 'Open', value: openTasks, color: 'text-slate-800', bg: 'bg-slate-50', icon: 'pending_actions' },
+          { label: 'Due soon', value: dueSoon, color: 'text-amber-700', bg: 'bg-amber-50', icon: 'schedule' },
+          { label: 'Overdue', value: overdueTasks, color: 'text-rose-700', bg: 'bg-rose-50', icon: 'warning' },
         ].map((s) => (
           <div
             key={s.label}
-            className={`${s.bg} rounded-lg border border-slate-100/80 px-4 py-3 text-center`}
+            className={`${s.bg} flex items-center justify-between rounded-xl border border-slate-100/80 px-4 py-3`}
           >
-            <p className={`text-xl font-bold tabular-nums font-[Space_Grotesk] ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{s.label}</p>
+            <div>
+              <p className={`text-xl font-bold tabular-nums font-[Space_Grotesk] ${s.color}`}>{s.value}</p>
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t(s.label)}</p>
+            </div>
+            <span className={`material-symbols-outlined rounded-lg bg-white/70 p-2 ${s.color}`}>{s.icon}</span>
           </div>
         ))}
       </div>
@@ -260,14 +285,14 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-cyan-600 text-[20px]">calendar_month</span>
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight font-[Space_Grotesk]">
-                Deadline calendar
+                {t('Deadline calendar')}
               </h2>
             </div>
             <button
               onClick={() => nav('/closings')}
               className="text-[11px] font-bold text-cyan-600 hover:text-cyan-700 uppercase tracking-wide"
             >
-              All closings →
+              {t('All closings →')}
             </button>
           </div>
           <div className="p-3 sm:p-4 max-h-[360px] overflow-auto">
@@ -282,34 +307,34 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-cyan-600 text-[20px]">monitoring</span>
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight font-[Space_Grotesk]">
-                System status
+                {t('System status')}
               </h2>
             </div>
-            <span className="text-[10px] font-mono text-emerald-600 font-bold">Healthy</span>
+            <span className="text-[10px] font-mono text-emerald-600 font-bold">{t('Healthy')}</span>
           </div>
 
           <div className="p-3 flex flex-col gap-2 flex-1 overflow-y-auto max-h-[360px]">
             <StatusRow
               icon="cloud_done"
-              title="System online"
-              detail="All services are running normally."
+              title={t('System online')}
+              detail={t('All services are running normally.')}
               time={clockStr}
             />
             <StatusRow
               icon="verified_user"
-              title="You are signed in"
-              detail="Your admin session is active and secure."
+              title={t('You are signed in')}
+              detail={t('Your admin session is active and secure.')}
               time="Now"
             />
             <StatusRow
               icon="assignment"
-              title="Task summary"
+              title={t('Task summary')}
               detail={`${openTasks} open · ${dueSoon} due soon · ${overdueTasks} overdue.`}
               time={clockStr}
             />
             <StatusRow
               icon="apartment"
-              title="Client summary"
+              title={t('Client summary')}
               detail={`${totalClients} clients · ${pendingPayments} with outstanding balances.`}
               time={clockStr}
             />
@@ -318,7 +343,7 @@ export default function Dashboard() {
           <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono text-slate-400">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Everything looks good
+              {t('Everything looks good')}
             </span>
             <span>{clockStr} EAT</span>
           </div>
@@ -332,7 +357,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-cyan-600 text-[20px]">groups</span>
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight font-[Space_Grotesk]">
-                Staff performance
+                {t('Staff performance')}
               </h2>
             </div>
           </div>
@@ -340,11 +365,11 @@ export default function Dashboard() {
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="text-[10px] uppercase tracking-wider font-mono text-slate-500 border-b border-slate-100">
-                  <th className="px-4 py-2.5 font-semibold">Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-center">Open</th>
-                  <th className="px-3 py-2.5 font-semibold text-center">Overdue</th>
-                  <th className="px-3 py-2.5 font-semibold text-center text-emerald-600">On time</th>
-                  <th className="px-3 py-2.5 font-semibold text-center text-amber-600">Late</th>
+                  <th className="px-4 py-2.5 font-semibold">{t('Name')}</th>
+                  <th className="px-3 py-2.5 font-semibold text-center">{t('Open')}</th>
+                  <th className="px-3 py-2.5 font-semibold text-center">{t('Overdue')}</th>
+                  <th className="px-3 py-2.5 font-semibold text-center text-emerald-600">{t('On time')}</th>
+                  <th className="px-3 py-2.5 font-semibold text-center text-amber-600">{t('Late')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -375,7 +400,7 @@ export default function Dashboard() {
                 {perf.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-4 py-10 text-center text-slate-400 text-xs font-mono uppercase">
-                      No performance data yet
+                      {t('No performance data yet')}
                     </td>
                   </tr>
                 )}
@@ -389,14 +414,14 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-emerald-600 text-[20px]">check_circle</span>
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight font-[Space_Grotesk]">
-                Recently closed
+                {t('Recently closed')}
               </h2>
             </div>
           </div>
           <div className="p-3 space-y-2 max-h-[320px] overflow-y-auto">
             {recentClosings.length === 0 ? (
               <div className="py-10 text-center text-slate-400 text-xs font-mono uppercase bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                No completed tasks yet
+                {t('No completed tasks yet')}
               </div>
             ) : (
               recentClosings.map((c) => (

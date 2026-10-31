@@ -3,6 +3,9 @@ import api, { errMsg } from '../api/client'
 import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import AuditorMessages from './AuditorMessages'
 
 // ---------- Helpers ----------
 function formatNumber(val: number | string): string {
@@ -55,6 +58,16 @@ const emptyForm = {
 }
 
 type CreateTab = 'general' | 'tra' | 'zra' | 'bpra' | 'zssf' | 'finance'
+type ClientDocument = {
+  id: number
+  authority: string
+  original_name: string
+  uploader_role: 'staff' | 'auditor'
+  created_at: string
+  feedback?: string | null
+  feedback_by_name?: string | null
+  feedback_at?: string | null
+}
 
 const createTabs: { key: CreateTab; label: string }[] = [
   { key: 'general', label: 'General Info' },
@@ -66,6 +79,9 @@ const createTabs: { key: CreateTab; label: string }[] = [
 ]
 
 export default function MyPrivileges() {
+  const { t } = useLanguage()
+  const { user } = useAuth()
+  const isAuditor = user?.role.toLowerCase() === 'auditor'
   const [privileges, setPrivileges] = useState<any[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -77,6 +93,7 @@ export default function MyPrivileges() {
   const [clientData, setClientData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('tra')
   const [uploadFiles, setUploadFiles] = useState<Record<string, File | null>>({})
+  const [clientDocuments, setClientDocuments] = useState<ClientDocument[]>([])
 
   // View modal
   const [viewClient, setViewClient] = useState<any>(null)
@@ -117,8 +134,12 @@ export default function MyPrivileges() {
     if (!p.client_id) return showToast('Privilege hii ni ya Global', 'error')
     setBusy(true)
     try {
-      const r = await api.get(`/clients/${p.client_id}`)
-      setClientData(r.data.data)
+      const [clientResponse, documentsResponse] = await Promise.all([
+        api.get(`/clients/${p.client_id}`),
+        api.get(`/clients/${p.client_id}/documents`),
+      ])
+      setClientData(clientResponse.data.data)
+      setClientDocuments(documentsResponse.data.data || [])
       setSelectedPrivilege(p)
       const allowedTabs = TABS.filter(t => p.permissions.includes(t.perm))
       if (allowedTabs.length > 0) setActiveTab(allowedTabs[0].key)
@@ -275,24 +296,47 @@ export default function MyPrivileges() {
           }
         })
       }
-      let hasFile = false
-      Object.entries(uploadFiles).forEach(([key, file]) => {
-        if (file) {
-          fd.append(`${key}_attachment`, file)
-          hasFile = true
-        }
-      })
+      const uploads = Object.entries(uploadFiles).filter((entry): entry is [string, File] => entry[1] !== null)
+      const hasFile = uploads.length > 0
       if (!canEdit && !hasFile) throw new Error('Hakuna mabadiliko ya kuhifadhi.')
-      await api.post(`/clients/${clientData.id}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      if (canEdit) {
+        await api.post(`/clients/${clientData.id}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+      for (const [authority, file] of uploads) {
+        const document = new FormData()
+        document.append('authority', authority.toUpperCase())
+        document.append('document', file)
+        await api.post(`/clients/${clientData.id}/documents`, document, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+      const documentsResponse = await api.get(`/clients/${clientData.id}/documents`)
+      setClientDocuments(documentsResponse.data.data || [])
+      setUploadFiles({})
       showToast('RECORDS SAVED SUCCESSFULLY', 'success')
-      setManageModal(false)
       load()
     } catch (e: any) {
       showToast(e.response?.data?.message || e.message || 'Kuna tatizo limetokea', 'error')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function downloadClientDocument(document: ClientDocument) {
+    try {
+      const response = await api.get(`/client-documents/${document.id}/file`, { responseType: 'blob' })
+      const url = URL.createObjectURL(response.data)
+      const link = window.document.createElement('a')
+      link.href = url
+      link.download = document.original_name
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      showToast(errMsg(e), 'error')
     }
   }
 
@@ -316,13 +360,15 @@ export default function MyPrivileges() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">
-              STAFF // WORKSPACE
+              {isAuditor ? 'AUDITOR // WORKSPACE' : 'STAFF // WORKSPACE'}
             </span>
             <span className="text-gray-400 text-[10px]">//</span>
-            <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">MY PRIVILEGES</span>
+            <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">
+              {isAuditor ? 'MY WORK' : 'MY PRIVILEGES'}
+            </span>
           </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">
-            My Assigned Privileges
+            {isAuditor ? 'My Work' : 'My Assigned Privileges'}
           </h2>
         </div>
 
@@ -342,6 +388,8 @@ export default function MyPrivileges() {
           {error}
         </div>
       )}
+
+      {isAuditor && <AuditorMessages />}
 
       {/* SEARCH */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 border border-gray-200 shadow-sm">
@@ -407,7 +455,7 @@ export default function MyPrivileges() {
                           </span>
                         ))
                       ) : (
-                        <span className="text-[10px] text-gray-400 italic">No permissions</span>
+                        <span className="text-[10px] text-gray-400 italic">{t('No permissions')}</span>
                       )}
                     </div>
                   </td>
@@ -640,15 +688,9 @@ export default function MyPrivileges() {
                     onChange={e => setCreateForm({ ...createForm, [`${a}_password`]: e.target.value } as any)}
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Upload Attachment (Optional)</label>
-                  <input
-                    type="file"
-                    accept="application/pdf,image/*,.doc,.docx"
-                    className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm file:mr-4 file:py-1 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold"
-                    onChange={e => setCreateForm({ ...createForm, [`${a}_attachment`]: e.target.files?.[0] || null } as any)}
-                  />
-                </div>
+                <p className="sm:col-span-2 text-xs text-slate-500">
+                  After the client is registered and the admin assigns your institution permissions, upload its documents from My Work.
+                </p>
               </div>
             </div>
           ))}
@@ -997,20 +1039,53 @@ export default function MyPrivileges() {
                           setUploadFiles({ ...uploadFiles, [tab.key]: e.target.files?.[0] || null })
                         }
                       />
-                      {clientData[`${tab.key}_attachment`] && (
-                        <p className="text-[10px] text-gray-500 mt-1">
-                          Current file:{' '}
-                          <a
-                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/files/uploads/clients/${clientData[`${tab.key}_attachment`]}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-cyan-600 underline"
-                          >
-                            View Existing
-                          </a>
-                        </p>
-                      )}
                     </div>
+                  </div>
+                  <div className="space-y-2 border-t border-gray-100 pt-3">
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      {isAuditor ? 'My Auditor Documents' : 'My Staff Documents'}
+                    </h5>
+                    {clientDocuments.filter(document => document.authority === tab.key.toUpperCase()).length > 0 ? (
+                      clientDocuments
+                        .filter(document => document.authority === tab.key.toUpperCase())
+                        .map(document => (
+                          <div key={document.id} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-slate-200 bg-white p-2 text-xs">
+                            <div className="min-w-0 flex-1">
+                              <p className="break-all font-medium text-slate-700">{document.original_name}</p>
+                              {isAuditor && (
+                                <span className={`mt-1 inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[9px] font-bold uppercase ${
+                                  document.feedback?.trim()
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                                }`}>
+                                  <span className="material-symbols-outlined text-[12px]">
+                                    {document.feedback?.trim() ? 'mark_email_read' : 'schedule'}
+                                  </span>
+                                  {document.feedback?.trim() ? 'Admin replied' : 'Awaiting admin reply'}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void downloadClientDocument(document)}
+                              className="shrink-0 text-cyan-700 underline"
+                            >
+                              Download
+                            </button>
+                            {isAuditor && document.feedback?.trim() && (
+                              <div className="w-full border-t border-emerald-100 pt-2 text-emerald-900">
+                                <p className="whitespace-pre-wrap break-words">{document.feedback}</p>
+                                <p className="mt-1 text-[10px] text-slate-400">
+                                  {document.feedback_by_name ? `Replied by ${document.feedback_by_name}` : 'Admin reply'}
+                                  {document.feedback_at ? ` · ${new Date(document.feedback_at).toLocaleString()}` : ''}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-xs italic text-slate-400">No documents uploaded for this institution yet.</p>
+                    )}
                   </div>
                 </div>
               ))}

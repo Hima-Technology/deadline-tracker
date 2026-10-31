@@ -3,13 +3,17 @@ import api, { errMsg } from '../api/client'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import Toast from '../components/Toast'
-import type { Closing } from '../types'
+import { AUTHORITIES } from '../types'
+import type { Authority, Closing } from '../types'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function MyClosings() {
+  const { t } = useLanguage()
   const [rows, setRows] = useState<Closing[]>([])
   const [target, setTarget] = useState<Closing | null>(null)
   const [ref, setRef] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [authorities, setAuthorities] = useState<Authority[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -37,12 +41,13 @@ export default function MyClosings() {
     try {
       const fd = new FormData()
       fd.append('reference_number', ref)
+      fd.append('authorities', JSON.stringify(authorities))
       if (file) fd.append('proof', file)
       await api.post(`/closings/${target.id}/close`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       showToast('TASK CLOSED SUCCESSFULLY', 'success')
-      setTarget(null); setRef(''); setFile(null); load()
+      setTarget(null); setRef(''); setFile(null); setAuthorities([]); load()
     } catch (e) { 
       setError(errMsg(e)) 
       showToast('ACTION FAILED', 'error')
@@ -58,11 +63,11 @@ export default function MyClosings() {
       {/* HEADER */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">STAFF // WORKSPACE</span>
+          <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">{t('STAFF // WORKSPACE')}</span>
           <span className="text-gray-400 text-[10px]">//</span>
-          <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">ASSIGNED TASKS</span>
+          <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">{t('ASSIGNED TASKS')}</span>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">My Closings</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('My Closings')}</h2>
       </div>
 
       {error && <div className="text-red-600 bg-red-50 p-3 border border-red-200 rounded text-sm font-mono">{error}</div>}
@@ -92,7 +97,19 @@ export default function MyClosings() {
             {c.status !== 'closed' && (
               <button 
                 className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(6,182,212,0.3)] active:scale-[0.99]" 
-                onClick={() => { setTarget(c); setRef(''); setFile(null); setError('') }}
+                onClick={() => {
+                  setTarget(c)
+                  setRef('')
+                  setFile(null)
+                  setAuthorities(
+                    c.authority && AUTHORITIES.some(({ value }) => value === c.authority)
+                      ? [c.authority as Authority]
+                      : c.authority === 'ALL'
+                        ? AUTHORITIES.map(({ value }) => value)
+                        : []
+                  )
+                  setError('')
+                }}
               >
                 <span className="material-symbols-outlined text-[18px]">task_alt</span>
                 Mark Task as Closed
@@ -105,6 +122,9 @@ export default function MyClosings() {
                   <span className="material-symbols-outlined text-green-600 text-[18px]">check_circle</span>
                   Closed Successfully {c.reference_number && `— Ref: ${c.reference_number}`}
                 </div>
+                {c.authorities && c.authorities.length > 0 && (
+                  <span className="text-xs font-mono">{c.authorities.join(', ')}</span>
+                )}
                 {c.proof_file_path && (
                   <a 
                     href={`http://localhost:8000/api/files${c.proof_file_path}`} 
@@ -135,8 +155,44 @@ export default function MyClosings() {
             Closing task for <strong>{target?.company_name}</strong> ({target?.period_label})
           </div>
 
+          <fieldset>
+            <legend className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Choose institution(s) *</legend>
+            <div className="flex flex-wrap gap-2">
+              {AUTHORITIES.map(({ value, label }) => (
+                <label key={value} className={`px-3 py-2 border rounded-sm text-xs font-bold cursor-pointer ${
+                  authorities.includes(value)
+                    ? 'bg-cyan-50 border-cyan-400 text-cyan-700'
+                    : 'bg-white border-gray-200 text-gray-600'
+                }`}>
+                  <input
+                    type="checkbox"
+                    className="mr-2"
+                    checked={authorities.includes(value)}
+                    onChange={() => setAuthorities(current =>
+                      current.includes(value)
+                        ? current.filter(authority => authority !== value)
+                        : [...current, value]
+                    )}
+                  />
+                  {label}
+                </label>
+              ))}
+              <button
+                type="button"
+                className="px-3 py-2 border border-gray-200 rounded-sm text-xs font-bold text-slate-600 hover:bg-slate-50"
+                onClick={() => setAuthorities(
+                  authorities.length === AUTHORITIES.length
+                    ? []
+                    : AUTHORITIES.map(({ value }) => value)
+                )}
+              >
+                {authorities.length === AUTHORITIES.length ? 'Clear all' : 'Select all'}
+              </button>
+            </div>
+          </fieldset>
+
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Reference Number *</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Reference Number *')}</label>
             <input 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm font-mono" 
               value={ref} 
@@ -146,7 +202,7 @@ export default function MyClosings() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Proof (PDF / Image, optional)</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Proof (PDF / Image, optional)')}</label>
             <input 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm file:mr-4 file:py-1 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" 
               type="file" 
@@ -162,7 +218,7 @@ export default function MyClosings() {
             <button 
               className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase hover:bg-cyan-400 transition-colors shadow-sm rounded-sm flex items-center gap-2 disabled:opacity-50" 
               onClick={markClosed} 
-              disabled={busy || !ref.trim()}
+              disabled={busy || !ref.trim() || authorities.length === 0}
             >
               {busy ? (
                 <>

@@ -16,7 +16,7 @@ class ClientController
         try {
             $u = Auth::requireAuth();
             $clients = Client::all([], 'company_name ASC');
-            $clients = array_map(fn($c) => $this->maskPasswords($c, $u), $clients);
+            $clients = array_map(fn($c) => $this->maskPasswords($this->hideUploadedDocuments($c, $u), $u), $clients);
             Response::success($clients);
         } catch (\Throwable $e) {
             Response::error('Failed to fetch clients', 500, ['detail' => $e->getMessage()]);
@@ -48,7 +48,7 @@ class ClientController
                 Response::error('Client not found', 404);
                 return;
             }
-            Response::success($this->maskPasswords($c, $u));
+            Response::success($this->maskPasswords($this->hideUploadedDocuments($c, $u), $u));
         } catch (\Throwable $e) {
             Response::error('Failed to fetch client', 500, ['detail' => $e->getMessage()]);
         }
@@ -70,6 +70,14 @@ class ClientController
             $data = Request::body();
             Validator::require($data, ['company_name']);
             $data['created_by'] = $u['id'];
+
+            if (($u['role'] ?? '') !== 'admin') {
+                foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $field) {
+                    if (isset($_FILES[$field]) && ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                        Response::error('Register the client first, then upload institution documents from My Work after permission is assigned', 403);
+                    }
+                }
+            }
 
             foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $f) {
                 if (isset($data[$f]) && (is_array($data[$f]) && empty($data[$f]) || $data[$f] === '[]')) {
@@ -99,7 +107,7 @@ class ClientController
             echo json_encode([
                 'success' => true,
                 'message' => 'Client created',
-                'data'    => $this->maskPasswords($client, $u)
+                'data'    => $this->maskPasswords($this->hideUploadedDocuments($client, $u), $u)
             ]);
             exit;
 
@@ -185,7 +193,7 @@ class ClientController
                 'zssf_attachment' => 'upload_zssf',
             ];
             foreach ($uploadMap as $field => $perm) {
-                if (($u['role'] ?? '') !== 'admin' && !in_array($perm, $perms, true)) {
+                if (($u['role'] ?? '') !== 'admin') {
                     unset($_FILES[$field]);
                 }
             }
@@ -211,7 +219,7 @@ class ClientController
             $client = Client::find($clientId);
 
             ActivityLogger::log($u['id'], null, 'client_updated', null, ['client_id' => $clientId]);
-            Response::success($this->maskPasswords($client, $u), 'Client updated');
+            Response::success($this->maskPasswords($this->hideUploadedDocuments($client, $u), $u), 'Client updated');
 
         } catch (\Throwable $e) {
             http_response_code(500);
@@ -423,7 +431,7 @@ class ClientController
     /**
      * Rudi permissions za user kwa client fulani.
      */
-    private function permissionsFor(array $user, int $clientId): array
+    public function permissionsFor(array $user, int $clientId): array
     {
         if (($user['role'] ?? '') === 'admin') {
             return [
@@ -532,6 +540,16 @@ class ClientController
         }
 
         return array_values(array_unique(array_filter($perms)));
+    }
+
+    private function hideUploadedDocuments(array $client, array $user): array
+    {
+        if (($user['role'] ?? '') !== 'admin') {
+            foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $field) {
+                unset($client[$field]);
+            }
+        }
+        return $client;
     }
 
     private function maskPasswords(array $c, array $user): array

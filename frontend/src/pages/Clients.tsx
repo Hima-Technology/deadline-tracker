@@ -4,6 +4,9 @@ import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { Client, User } from '../types'
+import { useLanguage } from '../context/LanguageContext'
+import { escapeHtml, openPrintDocument } from '../utils/printDocument'
+import { useAuth } from '../context/AuthContext'
 
 // ---------- Helpers ----------
 function formatNumber(val: number | string): string {
@@ -70,6 +73,16 @@ type Assignment = {
 }
 
 type Tab = 'general' | 'tra' | 'zra' | 'bpra' | 'zssf' | 'finance' | 'roles'
+type AuditorDocument = {
+  id: number
+  authority: string
+  original_name: string
+  uploader_name: string
+  created_at: string
+  feedback?: string | null
+  feedback_by_name?: string | null
+  feedback_at?: string | null
+}
 
 const tabs: { key: Tab; label: string; color: string; icon: string }[] = [
   { key: 'general', label: 'General Info', color: 'bg-slate-500',   icon: 'info' },
@@ -82,6 +95,8 @@ const tabs: { key: Tab; label: string; color: string; icon: string }[] = [
 ]
 
 export default function Clients() {
+  const { t } = useLanguage()
+  const { user } = useAuth()
   const [rows, setRows]     = useState<Client[]>([])
   const [staff, setStaff]   = useState<User[]>([])
   const [modal, setModal]   = useState(false)
@@ -93,6 +108,8 @@ export default function Clients() {
   const [activeTab, setActiveTab] = useState<Tab>('general')
   
   const [viewClient, setViewClient] = useState<Client | null>(null)
+  const [auditorDocuments, setAuditorDocuments] = useState<AuditorDocument[]>([])
+  const [auditorDocumentsBusy, setAuditorDocumentsBusy] = useState(false)
   const [pdfPreview, setPdfPreview] = useState<string | null>(null)
   
   // State za Password Security
@@ -130,6 +147,50 @@ export default function Clients() {
         staff_name: p.staff_name, staff_email: p.staff_email, staff_role: p.staff_role,
       })))
     } catch { setAssignments([]) }
+  }
+
+  async function openClientView(client: Client) {
+    setViewClient(client)
+    setAuditorDocuments([])
+    setAuditorDocumentsBusy(true)
+    try {
+      const response = await api.get(`/clients/${client.id}/documents`)
+      setAuditorDocuments(response.data.data || [])
+    } catch (e) {
+      showToast(errMsg(e), 'error')
+    } finally {
+      setAuditorDocumentsBusy(false)
+    }
+  }
+
+  async function downloadAuditorDocument(document: AuditorDocument) {
+    try {
+      const response = await api.get(`/client-documents/${document.id}/file`, { responseType: 'blob' })
+      const url = URL.createObjectURL(response.data)
+      const link = window.document.createElement('a')
+      link.href = url
+      link.download = document.original_name
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      showToast(errMsg(e), 'error')
+    }
+  }
+
+  async function saveAuditorFeedback(document: AuditorDocument) {
+    try {
+      const response = await api.post(`/client-documents/${document.id}/feedback`, {
+        feedback: document.feedback || '',
+      })
+      setAuditorDocuments(documents => documents.map(item =>
+        item.id === document.id ? response.data.data : item
+      ))
+      showToast('AUDITOR FEEDBACK SAVED', 'success')
+    } catch (e) {
+      showToast(errMsg(e), 'error')
+    }
   }
 
   function openCreate() {
@@ -314,6 +375,77 @@ export default function Clients() {
     }
   }
 
+  function printClient(client: Client) {
+    const printWindowAllowed = openPrintDocument(
+      `Client Record - ${client.company_name}`,
+      buildClientPrintContent(client),
+      user?.name || 'Admin'
+    )
+    if (!printWindowAllowed) {
+      showToast('Ruhusu pop-ups ili kuchapisha taarifa za mteja', 'error')
+    }
+  }
+
+  function buildClientPrintContent(client: Client): string {
+    const value = (field: string) => {
+      const current = (client as any)[field]
+      return current === null || current === undefined || current === '' ? '—' : String(current)
+    }
+    const row = (label: string, field: string) =>
+      `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value(field))}</td></tr>`
+    const authorities = (['tra', 'zra', 'bpra', 'zssf'] as const).map(authority => {
+      const prefix = authority.toUpperCase()
+      const passwordField = `${authority}_password`
+      const password = revealedData?.[passwordField]
+        || ((client as any)[passwordField] ? '••••••••' : '—')
+      return `
+        <section>
+          <h2>${prefix} Details</h2>
+          <table>
+            ${row(`${prefix} Number`, `${authority}_number`)}
+            ${row(`${prefix} Username`, `${authority}_username`)}
+            <tr><th>${prefix} Password</th><td>${escapeHtml(password)}</td></tr>
+            ${row(`${prefix} Registration Date`, `${authority}_reg_date`)}
+            ${row(`${prefix} Start Date`, `${authority}_start_date`)}
+            ${row(`${prefix} End Date`, `${authority}_end_date`)}
+            ${row(`${prefix} Attachment`, `${authority}_attachment`)}
+          </table>
+        </section>
+      `
+    }).join('')
+
+    return `
+          <h1>${escapeHtml(client.company_name)}</h1>
+          <p>Client Record · ID: SBC-${String(client.id).padStart(4, '0')}</p>
+          <section>
+            <h2>General Information</h2>
+            <table>
+              ${row('Contact Person', 'contact_person')}
+              ${row('Phone', 'phone')}
+              ${row('Email', 'email')}
+              ${row('Location', 'location')}
+              ${row('Industry', 'industry')}
+              ${row('TIN', 'tin')}
+              ${row('Financial Year Start', 'financial_year_start')}
+              ${row('Notes', 'notes')}
+            </table>
+          </section>
+          <section>
+            <h2>Contract & Finance</h2>
+            <table>
+              ${row('Service Type', 'service_type')}
+              ${row('Contract Start Date', 'contract_start_date')}
+              ${row('Contract End Date', 'contract_end_date')}
+              ${row('Contract Amount (TZS)', 'total_contract_amount')}
+              ${row('Amount Paid (TZS)', 'amount_paid')}
+              <tr><th>Balance (TZS)</th><td>${escapeHtml(formatNumber(Number(client.total_contract_amount || 0) - Number(client.amount_paid || 0)))}</td></tr>
+              ${row('Assessment Information', 'assessment_info')}
+            </table>
+          </section>
+          ${authorities}
+        `
+  }
+
   const filteredRows = rows.filter(c =>
     c.company_name.toLowerCase().includes(search.toLowerCase()) ||
     (c.contact_person || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -327,17 +459,17 @@ export default function Clients() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">SYS.OPS // ENTITIES</span>
+            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">{t('SYS.OPS // ENTITIES')}</span>
             <span className="text-gray-400 text-[10px]">//</span>
             <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">DATA: CLIENTS</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">Client Directory</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Client Directory')}</h2>
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all text-xs font-bold uppercase active:scale-95"
           onClick={openCreate}>
           <span className="material-symbols-outlined text-[16px]">domain_add</span>
-          Add Client
+          {t('Add Client')}
         </button>
       </div>
 
@@ -388,7 +520,7 @@ export default function Clients() {
                     <div className="flex justify-end gap-1">
                       <button
                         className="p-1.5 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded transition-colors"
-                        onClick={() => setViewClient(c)}
+                        onClick={() => void openClientView(c)}
                         title="View Details">
                         <span className="material-symbols-outlined text-[18px]">visibility</span>
                       </button>
@@ -420,6 +552,7 @@ export default function Clients() {
         setRevealedData(null)
         setRevealModal(false)
         setSysPassword('')
+        setAuditorDocuments([])
       }} title="Client Details">
         {viewClient && (() => {
           const v: any = viewClient
@@ -465,16 +598,24 @@ export default function Clients() {
                     <p className="text-xs font-mono text-gray-500">ID: SBC-{v.id?.toString().padStart(4, '0') || '----'}</p>
                   </div>
                 </div>
-                
-                {!revealedData && (
-                  <button 
-                    onClick={() => setRevealModal(true)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-slate-700"
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => printClient(viewClient)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white text-xs font-bold uppercase rounded-sm hover:bg-cyan-700"
                   >
-                    <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                    Reveal Passwords
+                    <span className="material-symbols-outlined text-[16px]">print</span>
+                    Print Form
                   </button>
-                )}
+                  {!revealedData && (
+                    <button 
+                      onClick={() => setRevealModal(true)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold uppercase rounded-sm hover:bg-slate-700"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                      Reveal Passwords
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -543,6 +684,65 @@ export default function Clients() {
                 <Row label="Balance" value={`TZS ${formatNumber((v.total_contract_amount||0) - (v.amount_paid||0))}`} />
               </div>
 
+              <section className="space-y-3 border-t border-gray-200 pt-4">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-700">Auditor Feedback</h4>
+                  <p className="mt-1 text-[11px] text-slate-500">Documents uploaded by auditors only.</p>
+                </div>
+                {auditorDocumentsBusy ? (
+                  <p className="text-xs text-slate-400">Loading auditor documents...</p>
+                ) : auditorDocuments.length === 0 ? (
+                  <p className="rounded-sm border border-slate-100 bg-slate-50 p-3 text-xs italic text-slate-400">
+                    No auditor documents have been uploaded for this client.
+                  </p>
+                ) : auditorDocuments.map(document => (
+                  <div key={document.id} className="space-y-2 rounded-sm border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="break-all text-xs font-bold text-slate-800">{document.original_name}</p>
+                        <p className="mt-1 text-[10px] font-mono uppercase text-slate-500">
+                          {document.authority} · Uploaded by {document.uploader_name} · {new Date(document.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void downloadAuditorDocument(document)}
+                        className="shrink-0 text-xs font-bold text-cyan-700 underline"
+                      >
+                        Download
+                      </button>
+                    </div>
+                    <label className="block">
+                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Admin feedback</span>
+                      <textarea
+                        maxLength={5000}
+                        rows={3}
+                        value={document.feedback || ''}
+                        onChange={event => setAuditorDocuments(documents => documents.map(item =>
+                          item.id === document.id ? { ...item, feedback: event.target.value } : item
+                        ))}
+                        className="w-full border border-slate-200 bg-white p-2 text-xs"
+                        placeholder="Write feedback for the auditor..."
+                      />
+                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-slate-400">
+                        {document.feedback_by_name
+                          ? `Last saved by ${document.feedback_by_name}${document.feedback_at ? ` · ${new Date(document.feedback_at).toLocaleDateString()}` : ''}`
+                          : 'No feedback saved'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void saveAuditorFeedback(document)}
+                        className="rounded-sm bg-indigo-600 px-3 py-1.5 text-[10px] font-bold uppercase text-white hover:bg-indigo-700"
+                      >
+                        Save Feedback
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+
               <div className="flex justify-end pt-2">
                 <button className="px-6 py-2 bg-slate-800 text-white text-xs font-bold uppercase hover:bg-slate-700 rounded-sm"
                   onClick={() => {
@@ -565,7 +765,7 @@ export default function Clients() {
           {revealError && <div className="text-xs text-red-600 bg-red-50 p-2 rounded">{revealError}</div>}
           
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">System Password</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('System Password')}</label>
             <input 
               type="password" 
               className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono focus:border-cyan-500 focus:outline-none"
@@ -632,43 +832,43 @@ export default function Clients() {
 
           {activeTab === 'general' && (
             <div className="space-y-4">
-              <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-wider border-b border-gray-100 pb-1">Company Details</h4>
+              <h4 className="text-xs font-bold text-cyan-600 uppercase tracking-wider border-b border-gray-100 pb-1">{t('Company Details')}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Company Name</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Company Name')}</label>
                   <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                     value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Location</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Location')}</label>
                   <select className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                     value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}>
-                    <option value="Mainland">Mainland Tanzania</option>
+                    <option value="Mainland">{t('Mainland Tanzania')}</option>
                     <option value="Zanzibar">Zanzibar</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Industry</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Industry')}</label>
                   <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                     value={form.industry} onChange={e => setForm({ ...form, industry: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Financial Year Start</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Financial Year Start')}</label>
                   <input type="date" className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
                     value={form.financial_year_start} onChange={e => setForm({ ...form, financial_year_start: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Contact Person</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Contact Person')}</label>
                   <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm"
                     value={form.contact_person} onChange={e => setForm({ ...form, contact_person: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Phone</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Phone')}</label>
                   <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
                     value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Email</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Email')}</label>
                   <input type="email" className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
                     value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
                 </div>
@@ -720,7 +920,7 @@ export default function Clients() {
                     value={(form as any)[`${a}_password`]} onChange={e => setForm({ ...form, [`${a}_password`]: e.target.value } as any)} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Upload Attachment (Optional)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Upload Attachment (Optional)')}</label>
                   <input type="file" accept="application/pdf,image/*,.doc,.docx"
                     className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm file:mr-4 file:py-1 file:px-3 file:rounded-sm file:border-0 file:text-xs file:font-semibold"
                     onChange={e => setForm({ ...form, [`${a}_attachment`]: e.target.files?.[0] || null } as any)} />
@@ -734,17 +934,17 @@ export default function Clients() {
               <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider border-b pb-1">Financial Records</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Total Contract (TZS)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Total Contract (TZS)')}</label>
                   <input type="text" className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
                     value={formatNumber(form.total_contract_amount)} onChange={e => setForm({ ...form, total_contract_amount: parseNumber(e.target.value) })} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Amount Paid (TZS)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Amount Paid (TZS)')}</label>
                   <input type="text" className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
                     value={formatNumber(form.amount_paid)} onChange={e => setForm({ ...form, amount_paid: parseNumber(e.target.value) })} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Remaining Balance</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">{t('Remaining Balance')}</label>
                   <div className={`p-2 border rounded font-mono font-bold text-lg ${
                     form.total_contract_amount - form.amount_paid > 0
                       ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-600 border-green-200'
@@ -833,7 +1033,7 @@ export default function Clients() {
               onClick={() => setModal(false)}>Cancel</button>
             <button className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase hover:bg-cyan-400 rounded-sm flex items-center gap-2 disabled:opacity-50"
               onClick={save} disabled={busy}>
-              {busy ? (<><span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span> Saving...</>) : 'Save Client'}
+              {busy ? (<><span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span> {t('Saving...')}</>) : t('Save Client')}
             </button>
           </div>
         </div>

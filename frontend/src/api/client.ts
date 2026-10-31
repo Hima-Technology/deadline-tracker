@@ -1,5 +1,4 @@
 import axios from 'axios'
-import type { ApiResponse } from '../types'
 
 const api = axios.create({
   // Elekeza moja kwa moja kwenye PHP Backend

@@ -65,6 +65,7 @@ class ClosingController
         $data = Request::body();
         $ref  = $data['reference_number'] ?? null;
         if (!$ref) Response::error('reference_number is required', 422);
+        $authorities = $this->validatedAuthorities($data['authorities'] ?? null);
 
         $proofPath = null;
         if (!empty($_FILES['proof']['tmp_name'])) {
@@ -81,7 +82,7 @@ class ClosingController
         }
 
         $old = $c;
-        $updated = Closing::markClosed((int)$id, $u['id'], $ref, $proofPath);
+        $updated = Closing::markClosed((int)$id, $u['id'], $ref, $proofPath, $authorities);
         ActivityLogger::log($u['id'], (int)$id, 'closing_closed', $old, $updated);
         Response::success($updated, 'Closing marked as done');
     }
@@ -105,6 +106,7 @@ class ClosingController
             if (isset($data['reference_number'])) $patch['reference_number'] = $data['reference_number'];
             
             if (isset($data['status']) && $data['status'] === 'closed') {
+                $patch['authorities'] = json_encode($this->validatedAuthorities($data['authorities'] ?? null));
                 $patch['closed_at'] = date('Y-m-d H:i:s');
                 $patch['closed_by'] = $u['id'];
             }
@@ -145,6 +147,23 @@ class ClosingController
         }
     }
 
+    private function validatedAuthorities($value): array
+    {
+        if (is_string($value)) {
+            $value = json_decode($value, true);
+        }
+        $allowed = ['TRA', 'ZRA', 'BPRA', 'ZSSF'];
+        if (!is_array($value) || !$value) {
+            Response::error('Select at least one institution', 422);
+        }
+        foreach ($value as $authority) {
+            if (!is_string($authority) || !in_array($authority, $allowed, true)) {
+                Response::error('Invalid institution selection', 422);
+            }
+        }
+        return array_values(array_unique($value));
+    }
+
     public function destroy(string $id): void
     {
         Auth::requireAdmin();
@@ -152,7 +171,7 @@ class ClosingController
         if (!$c) Response::error('Closing not found', 404);
 
         Closing::delete((int)$id);
-        ActivityLogger::log(null, (int)$id, 'closing_deleted', $c);
+        ActivityLogger::log(null, null, 'closing_deleted', $c);
         Response::success(null, 'Closing deleted');
     }
 }

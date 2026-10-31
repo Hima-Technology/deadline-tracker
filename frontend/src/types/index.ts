@@ -1,6 +1,14 @@
 export type Role = 'admin' | 'staff' | 'auditor'
 export type Status = 'open' | 'due_soon' | 'overdue' | 'closed'
 export type Frequency = 'monthly' | 'quarterly' | 'annual' | 'one_off'
+export type Authority = 'TRA' | 'ZRA' | 'BPRA' | 'ZSSF'
+
+export const AUTHORITIES: { value: Authority; label: string }[] = [
+  { value: 'TRA', label: 'TRA' },
+  { value: 'ZRA', label: 'ZRA' },
+  { value: 'BPRA', label: 'BPRA' },
+  { value: 'ZSSF', label: 'ZSSF' },
+]
 
 export interface User {
   id: number
@@ -76,6 +84,8 @@ export interface Closing {
   closed_by?: number | null
   reference_number?: string | null
   proof_file_path?: string | null
+  authorities?: Authority[]
+  authority?: string
   company_name?: string
   obligation_title?: string
   staff_name?: string

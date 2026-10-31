@@ -73,6 +73,15 @@ Hakikisha una vitu hivi kwenye kompyuta yako:
    psql -U postgres -c "CREATE DATABASE deadline_tracker;"
    psql -U postgres -d deadline_tracker -f database/schema.sql
    ```
+   *(Kwa database iliyopo, schema file peke yake haibadilishi database tayari. Endesha migration zinazohitajika kutoka Command Prompt:)*
+   ```bash
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.closings ADD COLUMN IF NOT EXISTS authorities jsonb DEFAULT '[]'::jsonb NOT NULL;"
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.reminder_logs DROP CONSTRAINT IF EXISTS reminder_logs_channel_check; ALTER TABLE public.reminder_logs ADD CONSTRAINT reminder_logs_channel_check CHECK (channel IN ('whatsapp', 'email', 'sms'));"
+   psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\migrations\20261031_create_examinations.sql
+   psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\migrations\20261101_create_client_documents.sql
+   psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\auditor_messages.sql
+   ```
+   *(Thibitisha kuwa API inatumia database yenye jedwali hilo: `psql -U postgres -d deadline_tracker -c "SELECT current_database(), to_regclass('public.auditor_messages');"` inapaswa kurudisha `deadline_tracker` na `auditor_messages`.)*
 5. Washa Backend Server **kwa kutumia `router.php`**:
    ```bash
    php -S 127.0.0.1:8000 router.php

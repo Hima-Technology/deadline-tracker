@@ -11,6 +11,9 @@ use App\Controllers\SettingController;
 use App\Controllers\PasswordResetController;
 use App\Controllers\FileController;
 use App\Controllers\PrivilegeController;
+use App\Controllers\ExaminationController;
+use App\Controllers\ClientDocumentController;
+use App\Controllers\AuditorMessageController;
 
 $router = new Router();
 
@@ -55,6 +58,21 @@ $router->post  ('/api/clients',      [ClientController::class, 'store']);
 $router->put   ('/api/clients/{id}', [ClientController::class, 'update']);
 $router->post  ('/api/clients/{id}', [ClientController::class, 'update']);
 $router->delete('/api/clients/{id}', [ClientController::class, 'destroy']);
+$router->get   ('/api/clients/{id}/documents', [ClientDocumentController::class, 'index']);
+$router->post  ('/api/clients/{id}/documents', [ClientDocumentController::class, 'store']);
+$router->get   ('/api/auditor-documents', [ClientDocumentController::class, 'auditorDocuments']);
+$router->get   ('/api/client-documents/{id}/file', [ClientDocumentController::class, 'download']);
+$router->post  ('/api/client-documents/{id}/feedback', [ClientDocumentController::class, 'feedback']);
+$router->get   ('/api/auditor-messages', [AuditorMessageController::class, 'index']);
+$router->post  ('/api/auditor-messages', [AuditorMessageController::class, 'store']);
+
+// =========================================================
+// EXAMINATIONS (admin)
+// =========================================================
+$router->get   ('/api/examinations',      [ExaminationController::class, 'index']);
+$router->post  ('/api/examinations',      [ExaminationController::class, 'store']);
+$router->post  ('/api/examinations/{id}', [ExaminationController::class, 'update']);
+$router->delete('/api/examinations/{id}', [ExaminationController::class, 'destroy']);
 
 // Client Permissions (Staff Roles)
 $router->get ('/api/clients/{id}/permissions', [ClientController::class, 'permissions']);

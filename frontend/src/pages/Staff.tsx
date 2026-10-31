@@ -4,10 +4,12 @@ import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { User } from '../types'
+import { useLanguage } from '../context/LanguageContext'
 
 const empty = { name: '', email: '', phone: '', password: '', role: 'staff' as 'staff' | 'auditor' | 'admin' }
 
 export default function Staff() {
+  const { t } = useLanguage()
   const [rows, setRows] = useState<User[]>([])
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
@@ -142,11 +144,11 @@ export default function Staff() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">SYS.OPS // PERSONNEL</span>
+            <span className="px-2 py-0.5 bg-cyan-100/50 text-cyan-800 text-[10px] uppercase tracking-widest font-bold border border-cyan-200">{t('SYS.OPS // PERSONNEL')}</span>
             <span className="text-gray-400 text-[10px]">//</span>
             <span className="text-gray-500 text-[10px] uppercase tracking-wider font-mono">DATA: USERS</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">Staff Management</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Staff Management')}</h2>
         </div>
         
         <button 
@@ -182,7 +184,7 @@ export default function Staff() {
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-[10px] uppercase font-mono tracking-wider text-gray-500 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-4 font-semibold">Operator Name</th>
+              <th className="px-4 py-4 font-semibold">{t('Operator Name')}</th>
               <th className="px-4 py-4 font-semibold">Comms (Email)</th>
               <th className="px-4 py-4 font-semibold">Phone</th>
               <th className="px-4 py-4 font-semibold text-center">Clearance (Role)</th>
@@ -279,26 +281,26 @@ export default function Staff() {
           {error && <div className="text-xs text-red-600 bg-red-50 p-2 border border-red-100 rounded font-mono">{error}</div>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Full Name</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Full Name')}</label>
               <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Phone Number</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Phone Number')}</label>
               <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Email Address</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Email Address')}</label>
             <input className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm disabled:opacity-50" type="email" value={form.email} disabled={!!editing} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             {editing && <p className="text-[10px] text-gray-400 mt-1 font-mono">Email cannot be changed</p>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">Clearance Level (Role)</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-mono">{t('Clearance Level (Role)')}</label>
               <select className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-sm uppercase font-bold text-slate-700" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })}>
-                <option value="staff">Staff</option>
+                <option value="staff">{t('Staff')}</option>
                 <option value="auditor">Auditor</option>
-                <option value="admin">Admin</option>
+                <option value="admin">{t('Admin')}</option>
               </select>
             </div>
             <div>
@@ -307,9 +309,9 @@ export default function Staff() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 mt-2">
-            <button className="px-4 py-2 bg-white border border-gray-200 text-slate-600 text-xs font-bold uppercase hover:bg-gray-50 transition-colors rounded-sm" onClick={() => setModal(false)}>Cancel</button>
+            <button className="px-4 py-2 bg-white border border-gray-200 text-slate-600 text-xs font-bold uppercase hover:bg-gray-50 transition-colors rounded-sm" onClick={() => setModal(false)}>{t('Cancel')}</button>
             <button className="px-4 py-2 bg-cyan-500 text-white text-xs font-bold uppercase hover:bg-cyan-400 transition-colors shadow-sm rounded-sm flex items-center gap-2 disabled:opacity-50" onClick={save} disabled={busy}>
-              {busy ? <><span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span>Saving...</> : 'Save Operator'}
+              {busy ? <><span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span>{t('Saving...')}</> : t('Save Operator')}
             </button>
           </div>
         </div>
@@ -345,7 +347,7 @@ export default function Staff() {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button className="px-6 py-2 bg-slate-800 text-white text-xs font-bold uppercase hover:bg-slate-700 transition-colors shadow-sm rounded-sm" onClick={() => setViewUser(null)}>Close Record</button>
+              <button className="px-6 py-2 bg-slate-800 text-white text-xs font-bold uppercase hover:bg-slate-700 transition-colors shadow-sm rounded-sm" onClick={() => setViewUser(null)}>{t('Close Record')}</button>
             </div>
           </div>
         )}

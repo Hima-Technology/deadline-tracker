@@ -10,8 +10,18 @@ class Closing extends BaseModel
         'obligation_id', 'client_id', 'assigned_staff_id',
         'period_label', 'due_date', 'status',
         'closed_at', 'closed_by', 'reference_number', 'proof_file_path',
-        'updated_at'
+        'authorities', 'updated_at'
     ];
+
+    public static function normalizeRow(array $row): array
+    {
+        $row = parent::normalizeRow($row);
+        if (isset($row['authorities']) && is_string($row['authorities'])) {
+            $decoded = json_decode($row['authorities'], true);
+            $row['authorities'] = is_array($decoded) ? $decoded : [];
+        }
+        return $row;
+    }
 
     public static function forStaff(int $staffId): array
     {
@@ -69,15 +79,15 @@ class Closing extends BaseModel
         return $row ? self::normalizeRow($row) : null;
     }
 
-    public static function markClosed(int $id, int $userId, string $ref, ?string $proof): ?array
+    public static function markClosed(int $id, int $userId, string $ref, ?string $proof, array $authorities): ?array
     {
         $stmt = self::pdo()->prepare(
             "UPDATE closings
              SET status='closed', closed_at=NOW(), closed_by=?,
-                 reference_number=?, proof_file_path=?, updated_at=NOW()
+                 reference_number=?, proof_file_path=?, authorities=?::jsonb, updated_at=NOW()
              WHERE id=? RETURNING *"
         );
-        $stmt->execute([$userId, $ref, $proof, $id]);
+        $stmt->execute([$userId, $ref, $proof, json_encode($authorities), $id]);
         $row = $stmt->fetch();
         return $row ? self::normalizeRow($row) : null;
     }

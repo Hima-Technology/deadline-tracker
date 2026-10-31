@@ -2,13 +2,17 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Toast from './Toast'
+import { useLanguage } from '../context/LanguageContext'
 
 const adminNav = [
   { to: '/dashboard',   label: 'Dashboard',        icon: 'dashboard' },
   { to: '/staff',       label: 'Staff Directory',  icon: 'grid_view' },
   { to: '/privileges',  label: 'Staff Privileges', icon: 'admin_panel_settings' },
   { to: '/clients',     label: 'Client Directory', icon: 'people' },
+  { to: '/auditor-feedback', label: 'Auditor Feedback', icon: 'rate_review' },
+  { to: '/auditor-messages', label: 'Auditor Messages', icon: 'forum' },
   { to: '/obligations', label: 'Deadlines',        icon: 'timer' },
+  { to: '/examinations', label: 'Examinations',    icon: 'fact_check' },
   { to: '/closings',    label: 'System Logs',      icon: 'terminal' },
   { to: '/settings',    label: 'Settings',         icon: 'settings' },
 ]
@@ -19,14 +23,15 @@ const staffNav = [
   { to: '/settings',      label: 'My Settings',   icon: 'settings' },
 ]
 
-// Auditor: My Privileges + My Settings tu
 const auditorNav = [
-  { to: '/my-privileges', label: 'My Privileges', icon: 'admin_panel_settings' },
+  { to: '/my-privileges', label: 'My Work',       icon: 'work' },
+  { to: '/auditor-messages', label: 'Messages',   icon: 'forum' },
   { to: '/settings',      label: 'My Settings',   icon: 'settings' },
 ]
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
+  const { t } = useLanguage()
   const nav = useNavigate()
 
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -73,9 +78,9 @@ export default function Layout() {
           <button
             className="hidden md:flex items-center justify-center w-8 h-8 bg-slate-50 text-slate-600 hover:bg-slate-200 transition-colors rounded"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            title="Toggle Sidebar"
+            title={t('Toggle Sidebar')}
           >
-            <span className="material-symbols-outlined text-[18px]">menu_open</span>
+            <span className="material-symbols-outlined text-[22px]">menu</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -90,7 +95,7 @@ export default function Layout() {
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-50 border border-gray-100 text-cyan-700 text-[10px] font-mono uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-            <span>System Online</span>
+            <span>{t('System Online')}</span>
           </div>
 
           <div className="flex items-center gap-3 pl-2 border-l border-gray-200">
@@ -107,7 +112,7 @@ export default function Layout() {
               className={`ml-2 p-1.5 rounded transition-colors ${
                 loggingOut ? 'text-cyan-500 animate-pulse bg-cyan-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
               }`}
-              title="Logout"
+              title={t('Logout')}
             >
               <span className="material-symbols-outlined text-[20px]">
                 {loggingOut ? 'autorenew' : 'logout'}
@@ -124,8 +129,17 @@ export default function Layout() {
             isCollapsed ? 'w-[72px]' : 'w-64'
           }`}
         >
+          <div className={`flex h-20 items-center border-b border-gray-100 ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
+            <img src="/sbclogo.png" alt="SBC logo" className="h-10 w-10 shrink-0 rounded-full bg-white object-contain p-1" />
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold uppercase tracking-wide text-slate-800">SBC</p>
+                <p className="truncate text-[9px] font-mono uppercase tracking-wider text-slate-500">Deadline Tracker</p>
+              </div>
+            )}
+          </div>
           <div className={`h-10 flex items-center justify-between bg-slate-50/50 border-b border-gray-100 ${isCollapsed ? 'px-2 justify-center' : 'px-4'}`}>
-            {!isCollapsed && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">Navigation</span>}
+            {!isCollapsed &&             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">{t('Navigation')}</span>}
             {!isCollapsed && <span className="text-[10px] font-bold text-cyan-600 font-mono">v1.0</span>}
             {isCollapsed && <span className="w-2 h-2 bg-cyan-500"></span>}
           </div>
@@ -142,14 +156,14 @@ export default function Layout() {
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                   } ${isCollapsed ? 'justify-center' : ''}`
                 }
-                title={isCollapsed ? l.label : undefined}
+                title={isCollapsed ? t(l.label) : undefined}
               >
                 <span className={`material-symbols-outlined text-[20px] ${isCollapsed ? '' : 'opacity-80 group-hover:opacity-100'}`}>
                   {l.icon}
                 </span>
                 {!isCollapsed && (
                   <span className="text-xs uppercase tracking-wider font-mono whitespace-nowrap">
-                    {l.label}
+                    {t(l.label)}
                   </span>
                 )}
               </NavLink>
@@ -172,8 +186,11 @@ export default function Layout() {
           <aside className="relative w-64 max-w-[80%] bg-white h-full shadow-2xl flex flex-col animate-slide-right">
             <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100 bg-slate-50">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_#06b6d4]"></span>
-                <span className="font-bold text-sm tracking-tight text-slate-800 uppercase">Menu</span>
+                <img src="/sbclogo.png" alt="SBC logo" className="h-9 w-9 rounded-full bg-white object-contain p-1" />
+                <div>
+                  <span className="block font-bold text-sm tracking-tight text-slate-800 uppercase">SBC</span>
+                  <span className="block text-[9px] font-mono uppercase tracking-wider text-slate-500">{t('Menu')}</span>
+                </div>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -198,7 +215,7 @@ export default function Layout() {
                   }
                 >
                   <span className="material-symbols-outlined text-[22px]">{l.icon}</span>
-                  <span className="text-sm uppercase tracking-wider font-mono">{l.label}</span>
+                  <span className="text-sm uppercase tracking-wider font-mono">{t(l.label)}</span>
                 </NavLink>
               ))}
             </nav>
@@ -212,11 +229,15 @@ export default function Layout() {
           <>
             <NavLink to="/dashboard" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">dashboard</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Home</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Home')}</span>
             </NavLink>
             <NavLink to="/clients" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">grid_view</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Clients</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Clients')}</span>
+            </NavLink>
+            <NavLink to="/auditor-feedback" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
+              <span className="material-symbols-outlined text-[22px]">rate_review</span>
+              <span className="text-[8px] font-bold uppercase font-mono">{t('Auditor Feedback')}</span>
             </NavLink>
             <div className="relative -top-4">
               <button
@@ -228,41 +249,45 @@ export default function Layout() {
             </div>
             <NavLink to="/obligations" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">notifications_active</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Alerts</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Alerts')}</span>
             </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">account_circle</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Profile</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Profile')}</span>
             </NavLink>
           </>
         ) : isAuditor ? (
           <>
             <NavLink to="/my-privileges" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
-              <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Privileges</span>
+              <span className="material-symbols-outlined text-[22px]">work</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('My Work')}</span>
+            </NavLink>
+            <NavLink to="/auditor-messages" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
+              <span className="material-symbols-outlined text-[22px]">forum</span>
+              <span className="text-[8px] font-bold uppercase font-mono">{t('Messages')}</span>
             </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">settings</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Settings</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Settings')}</span>
             </NavLink>
           </>
         ) : (
           <>
             <NavLink to="/my-closings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">dashboard</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Home</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Home')}</span>
             </NavLink>
             <NavLink to="/my-privileges" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">grid_view</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Privileges</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('My Privileges')}</span>
             </NavLink>
             <NavLink to="/my-closings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">notifications_active</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Alerts</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Alerts')}</span>
             </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">account_circle</span>
-              <span className="text-[9px] font-bold uppercase font-mono">Profile</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Profile')}</span>
             </NavLink>
           </>
         )}

@@ -10,6 +10,12 @@ class FileController
         $path = str_replace(['..', '\\'], '', urldecode($path));
         $path = ltrim($path, '/');
 
+        if (str_starts_with($path, 'uploads/client-documents/')) {
+            http_response_code(404);
+            echo 'File not found';
+            return;
+        }
+
         $baseDir = __DIR__ . '/../../storage/';
         $filePath = realpath($baseDir . $path);
 

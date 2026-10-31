@@ -13,6 +13,10 @@ import Settings from './pages/Settings'
 import ResetPassword from './pages/ResetPassword'
 import Privileges from './pages/Privileges'
 import MyPrivileges from './pages/MyPrivileges'
+import Examinations from './pages/Examinations'
+import AuditorFeedback from './pages/AuditorFeedback'
+import AuditorMessages from './pages/AuditorMessages'
+import { LanguageProvider } from './context/LanguageContext'
 
 // Redirect kulingana na role baada ya login
 function HomeRedirect() {
@@ -27,7 +31,8 @@ function HomeRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <LanguageProvider>
+       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -39,24 +44,35 @@ export default function App() {
               <Route path="/staff"       element={<Staff />} />
               <Route path="/clients"     element={<Clients />} />
               <Route path="/obligations" element={<Obligations />} />
+              <Route path="/examinations" element={<Examinations />} />
+              <Route path="/auditor-feedback" element={<AuditorFeedback />} />
               <Route path="/closings"    element={<Closings />} />
               <Route path="/privileges"  element={<Privileges />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute adminOrAuditor />}>
+            <Route element={<Layout />}>
+              <Route path="/auditor-messages" element={<AuditorMessages />} />
             </Route>
           </Route>
 
           {/* Staff + Auditor routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/my-closings"   element={<MyClosings />} />
               <Route path="/my-privileges" element={<MyPrivileges />} />
               <Route path="/settings"      element={<Settings />} />
+              <Route element={<ProtectedRoute staffOnly />}>
+                <Route path="/my-closings" element={<MyClosings />} />
+              </Route>
             </Route>
           </Route>
 
           <Route path="/" element={<HomeRedirect />} />
           <Route path="*" element={<HomeRedirect />} />
         </Routes>
-      </AuthProvider>
+       </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   )
 }
