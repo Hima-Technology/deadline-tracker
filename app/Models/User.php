@@ -33,4 +33,16 @@ class User extends BaseModel
         
         return $results;
     }
+
+    public static function activeStaff(): array
+    {
+        $stmt = self::pdo()->prepare(
+            "SELECT id, name
+             FROM users
+             WHERE role = 'staff' AND is_active = TRUE
+             ORDER BY name ASC"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
 }

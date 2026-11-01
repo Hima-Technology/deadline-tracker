@@ -93,9 +93,9 @@ export default function Login() {
             {/* Logo inayozunguka wakati busy - ROUND na KUBWA */}
             <div className={`relative w-24 h-24 rounded-full bg-white border border-gray-200 p-3 shadow-sm flex items-center justify-center overflow-hidden ${busy ? 'animate-spin' : ''}`}>
               <img 
-                src="/sbclogo.png" 
-                alt="SBC Logo" 
-                className="w-full h-full object-contain rounded-full"
+                src="/hima.png" 
+                alt="Hima Deadline Tracker logo" 
+                className="w-full h-full object-contain"
               />
             </div>
 

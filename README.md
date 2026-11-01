@@ -46,6 +46,15 @@ deadline-tracker/
 └── README.md             # Maelekezo (Faili hili)
 ```
 
+## Workflow ya kazi
+
+- Admin anatengeneza kazi kupitia **Staff Privileges → Task Assignments**, akichagua mteja, aina/mamlaka ya kazi, mzunguko, tarehe ya mwisho na mfanyakazi.
+- Kazi zinazoendelea kurudiwa hutumia mzunguko uliochaguliwa; kazi za mara moja hutumia due date iliyowekwa.
+- Staff huona kazi zake kwenye **Dashboard** na **My Work**, na hukamilisha kazi kupitia My Work pekee.
+- Ruhusa za mfumo zinadhibitiwa na admin kwenye **Staff Privileges → Access Privileges**. Katika **My Work**, staff huona vitendo vinavyolingana na ruhusa alizopewa, kama kuona au kuhariri taarifa za mteja, kufungua nywila, kupakia nyaraka, kuongeza/kufuta mteja, au kumpangia staff mwingine kazi.
+- Vitendo vya kuongeza/kufuta wateja, kupakia nyaraka na kugawa kazi vinathibitishwa tena na backend dhidi ya ruhusa za mtumiaji; kugawa kazi kunaruhusiwa kwa wateja waliopangiwa ruhusa hiyo pekee.
+- Admin Deadlines/Obligations haionekani tena kama ukurasa tofauti; task assignments zinatumia data na uzalishaji wa closing uliopo.
+
 ---
 
 ## ⚙️ Jinsi ya Kuweka Mfumo (Installation)
@@ -73,10 +82,14 @@ Hakikisha una vitu hivi kwenye kompyuta yako:
    psql -U postgres -c "CREATE DATABASE deadline_tracker;"
    psql -U postgres -d deadline_tracker -f database/schema.sql
    ```
-   *(Kwa database iliyopo, schema file peke yake haibadilishi database tayari. Endesha migration zinazohitajika kutoka Command Prompt:)*
+   *(Tumia database `deadline_tracker` iliyopo; usiunde database nyingine. `database/schema.sql` ndiyo schema kuu ya mfumo na sasa ina fields za Client Compliance Profile. Kwa database iliyokwisha tengenezwa, ongeza fields hizo kwenye database hiyohiyo kwa amri hii; kubadilisha schema file peke yake haku-update database iliyopo.)*
    ```bash
    psql -U postgres -d deadline_tracker -c "ALTER TABLE public.closings ADD COLUMN IF NOT EXISTS authorities jsonb DEFAULT '[]'::jsonb NOT NULL;"
    psql -U postgres -d deadline_tracker -c "ALTER TABLE public.reminder_logs DROP CONSTRAINT IF EXISTS reminder_logs_channel_check; ALTER TABLE public.reminder_logs ADD CONSTRAINT reminder_logs_channel_check CHECK (channel IN ('whatsapp', 'email', 'sms'));"
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS company_registration_number varchar(100), ADD COLUMN IF NOT EXISTS business_type varchar(40), ADD COLUMN IF NOT EXISTS enabled_tax_types jsonb NOT NULL DEFAULT '[]'::jsonb, ADD COLUMN IF NOT EXISTS financial_year_end date;"
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.examinations ADD COLUMN IF NOT EXISTS fee_amount numeric(14,2) NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS fee_paid boolean NOT NULL DEFAULT false; ALTER TABLE public.examinations ALTER COLUMN attachment_path DROP NOT NULL;"
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.closings ADD COLUMN IF NOT EXISTS completion_notes text; ALTER TABLE public.obligations DROP CONSTRAINT IF EXISTS obligations_authority_check; ALTER TABLE public.obligations ADD CONSTRAINT obligations_authority_check CHECK (authority IN ('TRA', 'ZRA', 'BPRA', 'ZSSF', 'ALL', 'TWO'));"
+   psql -U postgres -d deadline_tracker -c "ALTER TABLE public.client_documents ADD COLUMN IF NOT EXISTS uploader_name varchar(255); UPDATE public.client_documents d SET uploader_name = u.name FROM public.users u WHERE d.uploaded_by = u.id AND d.uploader_name IS NULL; ALTER TABLE public.client_documents ALTER COLUMN uploader_name SET NOT NULL; ALTER TABLE public.client_documents DROP CONSTRAINT IF EXISTS client_documents_uploaded_by_fkey; ALTER TABLE public.client_documents ALTER COLUMN uploaded_by DROP NOT NULL; ALTER TABLE public.client_documents ADD CONSTRAINT client_documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;"
    psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\migrations\20261031_create_examinations.sql
    psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\migrations\20261101_create_client_documents.sql
    psql -U postgres -d deadline_tracker -f C:\xampp\htdocs\deadline-tracker\database\auditor_messages.sql
@@ -117,8 +130,8 @@ Hakikisha una vitu hivi kwenye kompyuta yako:
 - Anaweza ku-view Proof (Attachment) za Staff.
 
 ### 2. Staff (Mfanyakazi)
-- Anaona kazi zake tu (My Closings).
-- Anaweza kufunga kazi (Mark as Closed) kwa kuweka Reference Number na Kupakia Uthibitisho (Proof).
+- Ana dashboard yenye kalenda, kazi alizokabidhiwa na ruhusa alizopewa.
+- Anaweza kufunga kazi kwa kuweka Reference Number na maelezo ya matokeo; uthibitisho hupakiwa pale obligation inapouhitaji.
 - Anaweza ku-view Proof alizopakia.
 - Anaweza kubadilisha Profile yake na Password.
 

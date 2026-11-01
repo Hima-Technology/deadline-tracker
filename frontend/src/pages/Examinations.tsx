@@ -17,7 +17,9 @@ interface Examination {
   exam_type: ExamType
   frequency: Frequency
   exam_date: string
-  attachment_path: string
+  attachment_path: string | null
+  fee_amount: number | string
+  fee_paid: boolean | string | number
 }
 
 interface ExaminationForm {
@@ -26,6 +28,8 @@ interface ExaminationForm {
   frequency: Frequency
   exam_date: string
   attachment: File | null
+  fee_amount: string
+  fee_paid: boolean
 }
 
 const emptyForm: ExaminationForm = {
@@ -34,6 +38,8 @@ const emptyForm: ExaminationForm = {
   frequency: 'monthly',
   exam_date: new Date().toISOString().slice(0, 10),
   attachment: null,
+  fee_amount: '0',
+  fee_paid: false,
 }
 
 const examLabels: Record<ExamType, string> = {
@@ -51,6 +57,27 @@ const frequencyLabels: Record<Frequency, string> = {
 
 const fileUrl = (path: string) =>
   `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/files/${path}`
+
+function formatFee(value: number | string): string {
+  const amount = Number(value)
+  return new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 2 }).format(
+    Number.isFinite(amount) ? amount : 0,
+  )
+}
+
+function isFeePaid(value: boolean | string | number): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true' || value === 't'
+}
+
+function formatFeeInput(value: string): string {
+  const cleaned = value.replace(/,/g, '').replace(/[^\d.]/g, '')
+  const decimalIndex = cleaned.indexOf('.')
+  const wholePart = (decimalIndex === -1 ? cleaned : cleaned.slice(0, decimalIndex)).replace(/^0+(?=\d)/, '')
+  const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (decimalIndex === -1) return formattedWhole
+  const decimalPart = cleaned.slice(decimalIndex + 1).replace(/\./g, '').slice(0, 2)
+  return `${formattedWhole || '0'}.${decimalPart}`
+}
 
 export default function Examinations() {
   const { t } = useLanguage()
@@ -111,6 +138,8 @@ export default function Examinations() {
       frequency: row.frequency,
       exam_date: row.exam_date.slice(0, 10),
       attachment: null,
+      fee_amount: String(row.fee_amount ?? 0),
+      fee_paid: isFeePaid(row.fee_paid),
     })
     setError('')
     setModalOpen(true)
@@ -121,16 +150,13 @@ export default function Examinations() {
       setError('Chagua client kwanza.')
       return
     }
-    if (!editing && !form.attachment) {
-      setError('Weka attachment ya examination.')
-      return
-    }
-
     const body = new FormData()
     body.append('client_id', String(form.client_id))
     body.append('exam_type', form.exam_type)
     body.append('frequency', form.frequency)
     body.append('exam_date', form.exam_date)
+    body.append('fee_amount', form.exam_type === 'penalties' ? form.fee_amount.replace(/,/g, '') || '0' : '0')
+    body.append('fee_paid', form.exam_type === 'penalties' && form.fee_paid ? '1' : '0')
     if (form.attachment) body.append('attachment', form.attachment)
     if (editing) body.append('_method', 'PUT')
 
@@ -183,7 +209,9 @@ export default function Examinations() {
     const tableRow = (label: string, value: string) =>
       `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`
     const date = new Date(`${row.exam_date.slice(0, 10)}T00:00:00`).toLocaleDateString()
-    const attachmentUrl = fileUrl(row.attachment_path)
+    const attachmentRow = row.attachment_path
+      ? `<tr><th>Attachment</th><td><a href="${escapeHtml(fileUrl(row.attachment_path))}">${escapeHtml(row.attachment_path.split('/').pop() || row.attachment_path)}</a></td></tr>`
+      : tableRow('Attachment', 'Not provided')
     const content = `
       <h1>${escapeHtml(row.company_name)}</h1>
       <p>Examination Record · ID: EX-${String(row.id).padStart(4, '0')}</p>
@@ -194,7 +222,9 @@ export default function Examinations() {
           ${tableRow('Examination Type', examLabels[row.exam_type])}
           ${tableRow('Payment Frequency', frequencyLabels[row.frequency])}
           ${tableRow('Date Performed', date)}
-          <tr><th>Attachment</th><td><a href="${escapeHtml(attachmentUrl)}">${escapeHtml(row.attachment_path.split('/').pop() || row.attachment_path)}</a></td></tr>
+          ${row.exam_type === 'penalties' ? tableRow('Penalty Fee', formatFee(row.fee_amount)) : ''}
+          ${row.exam_type === 'penalties' ? tableRow('Payment Status', isFeePaid(row.fee_paid) ? 'Paid' : 'Not paid') : ''}
+          ${attachmentRow}
         </table>
       </section>
     `
@@ -237,13 +267,15 @@ export default function Examinations() {
         {error && !modalOpen && <p className="mb-4 rounded-sm bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
               <tr className="border-y border-slate-100 text-[10px] uppercase tracking-wider text-slate-500">
                 <th className="px-3 py-3">{t('Client')}</th>
                 <th className="px-3 py-3">{t('Examination type')}</th>
                 <th className="px-3 py-3">{t('Payment frequency')}</th>
                 <th className="px-3 py-3">{t('Date performed')}</th>
+                <th className="px-3 py-3">{t('Penalty fee')}</th>
+                <th className="px-3 py-3">{t('Payment status')}</th>
                 <th className="px-3 py-3">{t('Attachment')}</th>
                 <th className="px-3 py-3 text-right">{t('Actions')}</th>
               </tr>
@@ -255,11 +287,23 @@ export default function Examinations() {
                   <td className="px-3 py-3">{t(examLabels[row.exam_type])}</td>
                   <td className="px-3 py-3">{t(frequencyLabels[row.frequency])}</td>
                   <td className="px-3 py-3">{new Date(`${row.exam_date.slice(0, 10)}T00:00:00`).toLocaleDateString()}</td>
+                  <td className="px-3 py-3">{row.exam_type === 'penalties' ? formatFee(row.fee_amount) : '—'}</td>
                   <td className="px-3 py-3">
-                    <a className="inline-flex items-center gap-1 text-cyan-700 hover:text-cyan-900" href={fileUrl(row.attachment_path)} target="_blank" rel="noreferrer">
-                      <span className="material-symbols-outlined text-lg">attach_file</span>
-                      {t('Open attachment')}
-                    </a>
+                    {row.exam_type === 'penalties' ? (
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
+                        isFeePaid(row.fee_paid) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {isFeePaid(row.fee_paid) ? t('Paid') : t('Not paid')}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td className="px-3 py-3">
+                    {row.attachment_path ? (
+                      <a className="inline-flex items-center gap-1 text-cyan-700 hover:text-cyan-900" href={fileUrl(row.attachment_path)} target="_blank" rel="noreferrer">
+                        <span className="material-symbols-outlined text-lg">attach_file</span>
+                        {t('Open attachment')}
+                      </a>
+                    ) : <span className="text-slate-400">{t('No attachment')}</span>}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-2">
@@ -281,7 +325,7 @@ export default function Examinations() {
               ))}
               {!filteredRows.length && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-12 text-center text-sm text-slate-400">
+                  <td colSpan={8} className="px-3 py-12 text-center text-sm text-slate-400">
                     {rows.length ? t('No search results found.') : t('No examinations have been recorded yet.')}
                   </td>
                 </tr>
@@ -304,6 +348,10 @@ export default function Examinations() {
                 [t('Examination type'), t(examLabels[viewing.exam_type])],
                 [t('Payment frequency'), t(frequencyLabels[viewing.frequency])],
                 [t('Date performed'), new Date(`${viewing.exam_date.slice(0, 10)}T00:00:00`).toLocaleDateString()],
+                ...(viewing.exam_type === 'penalties' ? [
+                  [t('Penalty fee'), formatFee(viewing.fee_amount)],
+                  [t('Payment status'), t(isFeePaid(viewing.fee_paid) ? 'Paid' : 'Not paid')],
+                ] : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4 py-3 text-sm">
                   <span className="text-slate-500">{label}</span>
@@ -312,9 +360,11 @@ export default function Examinations() {
               ))}
               <div className="flex justify-between gap-4 py-3 text-sm">
                 <span className="text-slate-500">{t('Attachment')}</span>
-                <a className="text-right font-semibold text-cyan-700 underline" href={fileUrl(viewing.attachment_path)} target="_blank" rel="noreferrer">
-                  {viewing.attachment_path.split('/').pop() || t('Open attachment')}
-                </a>
+                {viewing.attachment_path ? (
+                  <a className="text-right font-semibold text-cyan-700 underline" href={fileUrl(viewing.attachment_path)} target="_blank" rel="noreferrer">
+                    {viewing.attachment_path.split('/').pop() || t('Open attachment')}
+                  </a>
+                ) : <span className="text-right text-slate-400">{t('No attachment')}</span>}
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
@@ -351,7 +401,12 @@ export default function Examinations() {
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('Examination type')}</span>
             <select
               value={form.exam_type}
-              onChange={event => setForm({ ...form, exam_type: event.target.value as ExamType })}
+              onChange={event => setForm({
+                ...form,
+                exam_type: event.target.value as ExamType,
+                fee_amount: event.target.value === 'penalties' ? form.fee_amount : '0',
+                fee_paid: false,
+              })}
               className="w-full border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
             >
               <option value="principal">Principal</option>
@@ -359,6 +414,34 @@ export default function Examinations() {
               <option value="interest">Interest</option>
             </select>
           </label>
+
+          {form.exam_type === 'penalties' && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('Penalty fee (TZS)')}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.fee_amount}
+                  onChange={event => setForm({ ...form, fee_amount: formatFeeInput(event.target.value) })}
+                  className="w-full border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('Payment status')}</span>
+                <select
+                  value={form.fee_paid ? 'paid' : 'unpaid'}
+                  onChange={event => setForm({ ...form, fee_paid: event.target.value === 'paid' })}
+                  disabled={!Number(form.fee_amount.replace(/,/g, ''))}
+                  className="w-full border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="unpaid">{t('Not paid')}</option>
+                  <option value="paid">{t('Paid')}</option>
+                </select>
+                {!Number(form.fee_amount.replace(/,/g, '')) && <span className="mt-1 block text-xs text-slate-400">{t('Enter a fee amount to record payment.')}</span>}
+              </label>
+            </div>
+          )}
 
           <label className="block">
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('Payment frequency')}</span>
@@ -387,17 +470,16 @@ export default function Examinations() {
 
           <label className="block">
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              {t('Attachment')} {editing ? t('(optional, replace if needed)') : t('(required)')}
+              {t('Attachment')} {editing ? t('(optional, replace if needed)') : t('(optional)')}
             </span>
             <input
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              required={!editing}
               onChange={event => setForm({ ...form, attachment: event.target.files?.[0] || null })}
               className="w-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-slate-200 file:px-3 file:py-1.5"
             />
             <span className="mt-1 block text-xs text-slate-400">{t('PDF, image or Word document; 10MB maximum.')}</span>
-            {editing && <a className="mt-2 inline-block text-xs text-cyan-700 underline" href={fileUrl(editing.attachment_path)} target="_blank" rel="noreferrer">{t('Open current attachment')}</a>}
+            {editing?.attachment_path && <a className="mt-2 inline-block text-xs text-cyan-700 underline" href={fileUrl(editing.attachment_path)} target="_blank" rel="noreferrer">{t('Open current attachment')}</a>}
           </label>
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">

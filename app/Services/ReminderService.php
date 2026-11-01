@@ -12,38 +12,36 @@ class ReminderService
     {
         $pdo = Database::pdo();
         $obligations = $pdo->query(
-            'SELECT o.*, c.financial_year_start 
+            "SELECT o.*, COALESCE(c.financial_year_end::text, c.financial_year_start) AS financial_year_start
              FROM obligations o 
              JOIN clients c ON c.id = o.client_id 
-             WHERE o.is_active = TRUE'
+             WHERE o.is_active = TRUE"
         )->fetchAll();
 
         $count = 0;
 
         foreach ($obligations as $o) {
             try {
-                $period = self::currentPeriod($o['frequency']);
+                $confirmedDueDate = $o['confirmed_due_date'] ?? null;
+                $currentPeriod = self::currentPeriod($o['frequency']);
+                $confirmedPeriod = $confirmedDueDate
+                    ? self::periodForDate($confirmedDueDate, $o['frequency'])
+                    : null;
+                $period = $o['frequency'] === 'one_off' && $confirmedDueDate
+                    ? $confirmedPeriod
+                    : ($confirmedPeriod && $confirmedPeriod >= $currentPeriod ? $confirmedPeriod : $currentPeriod);
                 if ($period === null) continue;
 
-                // Annual: tumia financial_year_start (month + day) kama reference
-                if ($o['frequency'] === 'annual' && !empty($o['financial_year_start'])) {
-                    try {
-                        $fys = new \DateTime($o['financial_year_start']);
-                        $month = (int)$fys->format('n');
-                        $day   = (int)$fys->format('j');
-                        $year  = (int)date('Y');
-
-                        $dueDateObj = new \DateTime(sprintf('%04d-%02d-%02d', $year, $month, $day));
-                        if ($dueDateObj < new \DateTime('today')) {
-                            $year++;
-                            $dueDateObj = new \DateTime(sprintf('%04d-%02d-%02d', $year, $month, $day));
-                        }
-                        $dueDate = $dueDateObj->format('Y-m-d');
-                    } catch (\Throwable $e) {
-                        $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
-                    }
+                if ($confirmedDueDate && $confirmedPeriod === $period) {
+                    $dueDate = $confirmedDueDate;
                 } else {
-                    $dueDate = self::dueDate($period, (int)$o['due_day'], $o['frequency']);
+                    $dateAnchor = $confirmedDueDate;
+                    $dueDay = (int)$o['due_day'];
+                    if (!$dateAnchor && $o['frequency'] === 'annual' && !empty($o['financial_year_start'])) {
+                        $dateAnchor = $o['financial_year_start'];
+                        $dueDay = (int)(new \DateTime($dateAnchor))->format('j');
+                    }
+                    $dueDate = self::dueDate($period, $dueDay, $o['frequency'], $dateAnchor);
                 }
 
                 $sql = "INSERT INTO closings
@@ -82,25 +80,44 @@ class ReminderService
         };
     }
 
-    private static function dueDate(string $period, int $dueDay, string $freq): string
+    private static function periodForDate(string $date, string $frequency): ?string
     {
-        $now = new \DateTime();
-        $year = (int)$now->format('Y');
-        $month = (int)$now->format('n');
+        $dueDate = \DateTime::createFromFormat('!Y-m-d', substr($date, 0, 10));
+        if (!$dueDate) return null;
 
-        if ($freq === 'annual') {
-            $month = 1;
-        } elseif ($freq === 'quarterly') {
-            $quarter = ceil($month / 3);
-            $month = $quarter * 3;
+        return match ($frequency) {
+            'monthly' => $dueDate->format('Y-m'),
+            'quarterly' => $dueDate->format('Y') . '-Q' . ceil((int)$dueDate->format('n') / 3),
+            'annual' => $dueDate->format('Y'),
+            'one_off' => $dueDate->format('Y-m-d'),
+            default => null,
+        };
+    }
+
+    private static function dueDate(string $period, int $dueDay, string $freq, ?string $dateAnchor = null): string
+    {
+        $anchor = $dateAnchor ? new \DateTime(substr($dateAnchor, 0, 10)) : null;
+        if ($freq === 'monthly' && preg_match('/^(\d{4})-(\d{2})$/', $period, $matches)) {
+            $year = (int)$matches[1];
+            $month = (int)$matches[2];
+        } elseif ($freq === 'quarterly' && preg_match('/^(\d{4})-Q([1-4])$/', $period, $matches)) {
+            $year = (int)$matches[1];
+            $quarter = (int)$matches[2];
+            $quarterStart = (($quarter - 1) * 3) + 1;
+            $monthOffset = $anchor ? ((int)$anchor->format('n') - 1) % 3 : 2;
+            $month = $quarterStart + $monthOffset;
+        } elseif ($freq === 'annual' && preg_match('/^\d{4}$/', $period)) {
+            $year = (int)$period;
+            $month = $anchor ? (int)$anchor->format('n') : 1;
+        } elseif ($freq === 'one_off' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $period)) {
+            $date = new \DateTime($period);
+            return $date->format('Y-m-d');
+        } else {
+            throw new \InvalidArgumentException("Invalid period '{$period}' for frequency '{$freq}'");
         }
 
-        $month = max(1, min(12, $month));
-
-        $daysInMonth = (int)date('t', strtotime("{$year}-{$month}-01"));
-        $day = min($dueDay, $daysInMonth);
-        $day = max(1, $day);
-
+        $daysInMonth = (int)date('t', strtotime(sprintf('%04d-%02d-01', $year, $month)));
+        $day = max(1, min($dueDay, $daysInMonth));
         return sprintf('%04d-%02d-%02d', $year, $month, $day);
     }
 

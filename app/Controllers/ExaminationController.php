@@ -28,12 +28,12 @@ class ExaminationController
     {
         $admin = Auth::requireAdmin();
         $data = $this->validatedData(Request::body());
-        $attachmentPath = $this->saveAttachment(true);
+        $attachmentPath = $this->saveAttachment();
 
         try {
             $stmt = Database::pdo()->prepare(
-                'INSERT INTO examinations (client_id, exam_type, frequency, exam_date, attachment_path, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?)
+                'INSERT INTO examinations (client_id, exam_type, frequency, exam_date, attachment_path, fee_amount, fee_paid, created_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                  RETURNING id'
             );
             $stmt->execute([
@@ -42,6 +42,8 @@ class ExaminationController
                 $data['frequency'],
                 $data['exam_date'],
                 $attachmentPath,
+                $data['fee_amount'],
+                $data['fee_paid'],
                 $admin['id'],
             ]);
             Response::success($this->find((int) $stmt->fetchColumn()), 'Examination saved', 201);
@@ -58,13 +60,13 @@ class ExaminationController
         if (!$existing) Response::error('Examination not found', 404);
 
         $data = $this->validatedData(Request::body());
-        $newAttachmentPath = $this->saveAttachment(false);
+        $newAttachmentPath = $this->saveAttachment();
         $attachmentPath = $newAttachmentPath ?? $existing['attachment_path'];
 
         $stmt = Database::pdo()->prepare(
             'UPDATE examinations
              SET client_id = ?, exam_type = ?, frequency = ?, exam_date = ?,
-                 attachment_path = ?, updated_at = NOW()
+                 attachment_path = ?, fee_amount = ?, fee_paid = ?, updated_at = NOW()
              WHERE id = ?'
         );
         try {
@@ -74,6 +76,8 @@ class ExaminationController
                 $data['frequency'],
                 $data['exam_date'],
                 $attachmentPath,
+                $data['fee_amount'],
+                $data['fee_paid'],
                 (int) $id,
             ]);
         } catch (\Throwable $e) {
@@ -120,18 +124,35 @@ class ExaminationController
         $client->execute([$clientId]);
         if (!$client->fetchColumn()) Response::error('Client not found', 404);
 
+        $feeAmount = 0.0;
+        $feePaid = false;
+        if ($examType === 'penalties') {
+            $rawFee = $input['fee_amount'] ?? '0';
+            if (!is_numeric($rawFee) || (float) $rawFee < 0 || (float) $rawFee > 999999999999.99) {
+                Response::error('Enter a valid non-negative penalty fee', 422);
+            }
+            $feeAmount = round((float) $rawFee, 2);
+
+            $rawPaid = $input['fee_paid'] ?? false;
+            $feePaid = in_array($rawPaid, [true, 1, '1', 'true', 'on'], true);
+            if ($feePaid && $feeAmount <= 0) {
+                Response::error('A penalty fee is required before marking it paid', 422);
+            }
+        }
+
         return [
             'client_id' => $clientId,
             'exam_type' => $examType,
             'frequency' => $frequency,
             'exam_date' => $examDate,
+            'fee_amount' => $feeAmount,
+            'fee_paid' => $feePaid ? 'true' : 'false',
         ];
     }
 
-    private function saveAttachment(bool $required): ?string
+    private function saveAttachment(): ?string
     {
         if (!isset($_FILES['attachment']) || $_FILES['attachment']['error'] === UPLOAD_ERR_NO_FILE) {
-            if ($required) Response::error('Attach an examination document', 422);
             return null;
         }
 

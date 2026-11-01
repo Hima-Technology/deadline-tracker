@@ -26,11 +26,11 @@ class ClientDocumentController
         Auth::requireAdmin();
         $stmt = Database::pdo()->query(
             'SELECT d.id, d.client_id, d.authority, d.original_name, d.feedback, d.feedback_at,
-                    d.created_at, c.company_name, uploader.name AS uploader_name,
+                    d.created_at, c.company_name, COALESCE(uploader.name, d.uploader_name) AS uploader_name,
                     reviewer.name AS feedback_by_name
              FROM client_documents d
              JOIN clients c ON c.id = d.client_id
-             JOIN users uploader ON uploader.id = d.uploaded_by
+             LEFT JOIN users uploader ON uploader.id = d.uploaded_by
              LEFT JOIN users reviewer ON reviewer.id = d.feedback_by
              WHERE d.uploader_role = \'auditor\'
              ORDER BY d.created_at DESC, d.id DESC'
@@ -95,13 +95,14 @@ class ClientDocumentController
         try {
             $stmt = Database::pdo()->prepare(
                 'INSERT INTO client_documents
-                    (client_id, uploaded_by, uploader_role, authority, original_name, file_path)
-                 VALUES (?, ?, ?, ?, ?, ?)
+                    (client_id, uploaded_by, uploader_name, uploader_role, authority, original_name, file_path)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
                  RETURNING id'
             );
             $stmt->execute([
                 $clientId,
                 $user['id'],
+                $user['name'],
                 $role,
                 $authority,
                 basename($file['name']),
@@ -162,12 +163,49 @@ class ClientDocumentController
         Response::success($this->fetchDocument((int) $id, $user), 'Auditor feedback saved');
     }
 
+    public function destroyAuditorDocument(string $id): void
+    {
+        Auth::requireAdmin();
+        $document = $this->findDocument((int) $id);
+        if (!$document || $document['uploader_role'] !== 'auditor') {
+            Response::error('Auditor document not found', 404);
+        }
+
+        $storageRoot = realpath(__DIR__ . '/../../storage');
+        $filePath = realpath(__DIR__ . '/../../storage/' . $document['file_path']);
+        if ($filePath && (!$storageRoot || !str_starts_with($filePath, $storageRoot . DIRECTORY_SEPARATOR))) {
+            Response::error('Document file path is invalid', 500);
+        }
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare(
+                'DELETE FROM client_documents WHERE id = ? AND uploader_role = ?'
+            );
+            $stmt->execute([(int) $id, 'auditor']);
+            if ($stmt->rowCount() !== 1) {
+                $pdo->rollBack();
+                Response::error('Auditor document not found', 404);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+
+        if ($filePath && is_file($filePath) && !unlink($filePath)) {
+            Response::error('Document record deleted, but the stored file could not be removed', 500);
+        }
+        Response::success(null, 'Auditor document deleted');
+    }
+
     private function fetchClientDocuments(int $clientId, array $user): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT d.*, uploader.name AS uploader_name, reviewer.name AS feedback_by_name
+            'SELECT d.*, COALESCE(uploader.name, d.uploader_name) AS uploader_name, reviewer.name AS feedback_by_name
              FROM client_documents d
-             JOIN users uploader ON uploader.id = d.uploaded_by
+             LEFT JOIN users uploader ON uploader.id = d.uploaded_by
              LEFT JOIN users reviewer ON reviewer.id = d.feedback_by
              WHERE d.client_id = ?
              ORDER BY d.created_at DESC, d.id DESC'
@@ -182,10 +220,10 @@ class ClientDocumentController
     private function findDocument(int $id): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT d.*, c.company_name, uploader.name AS uploader_name, reviewer.name AS feedback_by_name
+            'SELECT d.*, c.company_name, COALESCE(uploader.name, d.uploader_name) AS uploader_name, reviewer.name AS feedback_by_name
              FROM client_documents d
              JOIN clients c ON c.id = d.client_id
-             JOIN users uploader ON uploader.id = d.uploaded_by
+             LEFT JOIN users uploader ON uploader.id = d.uploaded_by
              LEFT JOIN users reviewer ON reviewer.id = d.feedback_by
              WHERE d.id = ?'
         );

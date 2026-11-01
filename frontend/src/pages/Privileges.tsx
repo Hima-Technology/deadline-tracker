@@ -5,11 +5,15 @@ import Toast from '../components/Toast'
 import Swal from 'sweetalert2'
 import type { Client, User } from '../types'
 import { useLanguage } from '../context/LanguageContext'
+import { useSearchParams } from 'react-router-dom'
+import Obligations from './Obligations'
 
 const AVAILABLE_PERMISSIONS = [
   { key: 'view_clients',      label: 'View Clients' },
   { key: 'add_clients',       label: 'Add Clients' },
   { key: 'edit_clients',      label: 'Edit Clients' },
+  { key: 'view_compliance_profile', label: 'View Compliance Profile' },
+  { key: 'edit_compliance_profile', label: 'Edit Compliance Profile' },
   { key: 'delete_clients',    label: 'Delete Clients' },
   { key: 'view_passwords',    label: 'Reveal Passwords' },
   { key: 'upload_tra',        label: 'Upload TRA Docs' },
@@ -23,6 +27,10 @@ const AVAILABLE_PERMISSIONS = [
 
 export default function Privileges() {
   const { t } = useLanguage()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeSection, setActiveSection] = useState<'access' | 'tasks'>(
+    searchParams.get('tab') === 'tasks' ? 'tasks' : 'access'
+  )
   const [privileges, setPrivileges] = useState<any[]>([])
   const [staff, setStaff] = useState<User[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -56,7 +64,11 @@ export default function Privileges() {
       setClients(c.data.data || [])
     } catch (e) { setError(errMsg(e)) }
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    if (searchParams.get('tab') === 'tasks') setActiveSection('tasks')
+    if (searchParams.get('tab') === 'access') setActiveSection('access')
+  }, [searchParams])
 
   function moveToChosen(key: string) {
     setSelectedPermissions([...selectedPermissions, key])
@@ -135,19 +147,35 @@ export default function Privileges() {
     <div className="space-y-6 relative">
       <Toast show={toast.show} message={toast.message} type={toast.type} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Staff Privileges')}</h2>
-          <p className="text-xs text-slate-500 font-mono mt-1">Assign system permissions to staff and track notification delivery</p>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight font-[Space_Grotesk] uppercase">{t('Staff Access Management')}</h2>
+          <p className="text-xs text-slate-500 font-mono mt-1">{t('Manage staff access and assigned work from one place.')}</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white transition-all text-xs font-bold uppercase rounded-sm">
-          <span className="material-symbols-outlined text-[16px]">add_moderator</span>
-          Assign New Task
-        </button>
+        <div className="flex gap-2 border-b border-slate-200">
+          <button type="button" onClick={() => { setActiveSection('access'); setSearchParams({ tab: 'access' }) }}
+            className={`border-b-2 px-4 py-2 text-xs font-bold uppercase ${activeSection === 'access' ? 'border-cyan-500 text-cyan-700' : 'border-transparent text-slate-500'}`}>
+            {t('Review Staff Privileges')}
+          </button>
+          <button type="button" onClick={() => { setActiveSection('tasks'); setSearchParams({ tab: 'tasks' }) }}
+            className={`border-b-2 px-4 py-2 text-xs font-bold uppercase ${activeSection === 'tasks' ? 'border-cyan-500 text-cyan-700' : 'border-transparent text-slate-500'}`}>
+            {t('Assign Tasks to Staff')}
+          </button>
+        </div>
       </div>
 
+      {activeSection === 'tasks' ? (
+        <Obligations />
+      ) : (
+      <>
       {error && <div className="text-red-600 bg-red-50 p-3 rounded text-sm font-mono">{error}</div>}
 
+      <div className="flex justify-end">
+        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white transition-all text-xs font-bold uppercase rounded-sm">
+          <span className="material-symbols-outlined text-[16px]">add_moderator</span>
+          {t('Assign privilege')}
+        </button>
+      </div>
       <div className="bg-white border border-gray-200 shadow-sm overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-[10px] uppercase font-mono text-gray-500 border-b border-gray-200">
@@ -305,6 +333,8 @@ export default function Privileges() {
           <button className="px-4 py-2 bg-slate-800 text-white text-xs font-bold uppercase rounded-sm" onClick={() => setViewLogsModal(false)}>{t('Close Logs')}</button>
         </div>
       </Modal>
+      </>
+      )}
     </div>
   )
 }

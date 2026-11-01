@@ -11,7 +11,8 @@ class Client extends BaseModel
         'total_contract_amount', 'amount_paid', 'assessment_info',
         
         // Vigezo vya Msingi
-        'location', 'tin', 'industry', 'financial_year_start',
+        'location', 'tin', 'company_registration_number', 'business_type',
+        'enabled_tax_types', 'industry', 'financial_year_start', 'financial_year_end',
         
         // Namba za Usajili
         'tra_number', 'zra_number', 'bpra_number', 'zssf_number',

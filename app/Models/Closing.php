@@ -10,7 +10,7 @@ class Closing extends BaseModel
         'obligation_id', 'client_id', 'assigned_staff_id',
         'period_label', 'due_date', 'status',
         'closed_at', 'closed_by', 'reference_number', 'proof_file_path',
-        'authorities', 'updated_at'
+        'authorities', 'completion_notes', 'updated_at'
     ];
 
     public static function normalizeRow(array $row): array
@@ -27,7 +27,8 @@ class Closing extends BaseModel
     {
         $stmt = self::pdo()->prepare(
             'SELECT c.*, cl.company_name, o.title AS obligation_title,
-                    o.authority
+                    o.authority, o.document_type, o.instructions,
+                    o.requires_upload
              FROM closings c
              JOIN clients cl ON cl.id = c.client_id
              JOIN obligations o ON o.id = c.obligation_id
@@ -68,7 +69,8 @@ class Closing extends BaseModel
     {
         $stmt = self::pdo()->prepare(
             'SELECT c.*, cl.company_name, o.title AS obligation_title,
-                    o.reminder_days, o.authority
+                    o.reminder_days, o.authority, o.document_type,
+                    o.instructions, o.requires_upload
              FROM closings c
              JOIN clients cl ON cl.id = c.client_id
              JOIN obligations o ON o.id = c.obligation_id
@@ -79,15 +81,16 @@ class Closing extends BaseModel
         return $row ? self::normalizeRow($row) : null;
     }
 
-    public static function markClosed(int $id, int $userId, string $ref, ?string $proof, array $authorities): ?array
+    public static function markClosed(int $id, int $userId, string $ref, ?string $proof, array $authorities, ?string $completionNotes): ?array
     {
         $stmt = self::pdo()->prepare(
             "UPDATE closings
              SET status='closed', closed_at=NOW(), closed_by=?,
-                 reference_number=?, proof_file_path=?, authorities=?::jsonb, updated_at=NOW()
+                 reference_number=?, proof_file_path=?, authorities=?::jsonb,
+                 completion_notes=?, updated_at=NOW()
              WHERE id=? RETURNING *"
         );
-        $stmt->execute([$userId, $ref, $proof, json_encode($authorities), $id]);
+        $stmt->execute([$userId, $ref, $proof, json_encode($authorities), $completionNotes, $id]);
         $row = $stmt->fetch();
         return $row ? self::normalizeRow($row) : null;
     }

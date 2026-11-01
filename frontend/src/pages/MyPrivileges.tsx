@@ -6,6 +6,7 @@ import Swal from 'sweetalert2'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import AuditorMessages from './AuditorMessages'
+import { CLIENT_TAX_TYPES } from '../types'
 
 // ---------- Helpers ----------
 function formatNumber(val: number | string): string {
@@ -25,6 +26,8 @@ const PERMISSION_LABELS: Record<string, string> = {
   upload_zssf: 'Upload ZSSF Docs',
   edit_clients: 'Edit Clients',
   view_clients: 'View Clients',
+  view_compliance_profile: 'View Compliance Profile',
+  edit_compliance_profile: 'Edit Compliance Profile',
   view_passwords: 'Reveal Passwords',
   add_clients: 'Add Client',
   delete_clients: 'Delete Client',
@@ -42,7 +45,8 @@ const emptyForm = {
   company_name: '', contact_person: '', phone: '', email: '', notes: '',
   contract_start_date: '', contract_end_date: '', service_type: 'Audit',
   total_contract_amount: 0, amount_paid: 0, assessment_info: '',
-  location: 'Mainland', industry: '', financial_year_start: '',
+  location: 'Mainland', industry: '', tin: '', company_registration_number: '',
+  business_type: '', financial_year_end: '', enabled_tax_types: [] as string[],
 
   tra_number: '', tra_username: '', tra_password: '', tra_phone: '',
   tra_reg_date: '', tra_start_date: '', tra_end_date: '', tra_attachment: null as File | null,
@@ -57,7 +61,7 @@ const emptyForm = {
   zssf_reg_date: '', zssf_start_date: '', zssf_end_date: '', zssf_attachment: null as File | null,
 }
 
-type CreateTab = 'general' | 'tra' | 'zra' | 'bpra' | 'zssf' | 'finance'
+type CreateTab = 'general' | 'compliance' | 'tra' | 'zra' | 'bpra' | 'zssf' | 'finance'
 type ClientDocument = {
   id: number
   authority: string
@@ -69,8 +73,20 @@ type ClientDocument = {
   feedback_at?: string | null
 }
 
+function parseEnabledTaxTypes(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string')
+  if (typeof value !== 'string' || !value.trim()) return []
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 const createTabs: { key: CreateTab; label: string }[] = [
   { key: 'general', label: 'General Info' },
+  { key: 'compliance', label: 'Compliance Profile' },
   { key: 'tra',     label: 'TRA' },
   { key: 'zra',     label: 'ZRA' },
   { key: 'bpra',    label: 'BPRA' },
@@ -156,7 +172,9 @@ export default function MyPrivileges() {
   // ---------- View ----------
   async function openView(p: any) {
     if (!p.client_id) return showToast('Privilege hii ni ya Global', 'error')
-    if (!(p.permissions || []).includes('view_clients')) {
+    if (!(p.permissions || []).some((permission: string) =>
+      ['view_clients', 'view_compliance_profile', 'edit_compliance_profile'].includes(permission)
+    )) {
       return showToast('Hauna ruhusa ya kuona taarifa za mteja', 'error')
     }
     setBusy(true)
@@ -224,6 +242,10 @@ export default function MyPrivileges() {
       const fd = new FormData()
       Object.entries(createForm).forEach(([k, v]) => {
         if (v === null || v === undefined) return
+        if (Array.isArray(v)) {
+          fd.append(k, JSON.stringify(v))
+          return
+        }
         if (v instanceof File) {
           fd.append(k, v)
           return
@@ -284,6 +306,7 @@ export default function MyPrivileges() {
     try {
       const fd = new FormData()
       const canEdit = selectedPrivilege.permissions.includes('edit_clients')
+      const canEditCompliance = canEdit || selectedPrivilege.permissions.includes('edit_compliance_profile')
       if (canEdit) {
         TABS.forEach(t => {
           fd.append(`${t.key}_number`, clientData[`${t.key}_number`] || '')
@@ -296,10 +319,16 @@ export default function MyPrivileges() {
           }
         })
       }
+      if (canEditCompliance) {
+        fd.append('company_registration_number', clientData.company_registration_number || '')
+        fd.append('business_type', clientData.business_type || '')
+        fd.append('financial_year_end', clientData.financial_year_end || '')
+        fd.append('enabled_tax_types', JSON.stringify(parseEnabledTaxTypes(clientData.enabled_tax_types)))
+      }
       const uploads = Object.entries(uploadFiles).filter((entry): entry is [string, File] => entry[1] !== null)
       const hasFile = uploads.length > 0
-      if (!canEdit && !hasFile) throw new Error('Hakuna mabadiliko ya kuhifadhi.')
-      if (canEdit) {
+      if (!canEdit && !canEditCompliance && !hasFile) throw new Error('Hakuna mabadiliko ya kuhifadhi.')
+      if (canEdit || canEditCompliance) {
         await api.post(`/clients/${clientData.id}`, fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
@@ -425,7 +454,12 @@ export default function MyPrivileges() {
           <tbody className="divide-y divide-gray-100">
             {filtered.map(p => {
               const allowedTabs = TABS.filter(t => (p.permissions || []).includes(t.perm))
-              const canView = (p.permissions || []).includes('view_clients')
+              const canView = (p.permissions || []).some((permission: string) =>
+                ['view_clients', 'edit_clients'].includes(permission)
+              )
+              const canManageCompliance = (p.permissions || []).some((permission: string) =>
+                ['view_compliance_profile', 'edit_compliance_profile'].includes(permission)
+              )
               const canDelete = (p.permissions || []).includes('delete_clients')
 
               return (
@@ -484,7 +518,7 @@ export default function MyPrivileges() {
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                       )}
-                      {p.client_id && allowedTabs.length > 0 && (
+                      {p.client_id && (allowedTabs.length > 0 || canManageCompliance) && (
                         <button
                           className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
                           onClick={() => openManage(p)}
@@ -581,12 +615,11 @@ export default function MyPrivileges() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">Financial Year Start</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 font-mono">TIN</label>
                   <input
-                    type="date"
                     className="w-full px-3 py-2 bg-slate-50 border border-gray-200 text-sm rounded-sm font-mono"
-                    value={createForm.financial_year_start}
-                    onChange={e => setCreateForm({ ...createForm, financial_year_start: e.target.value })}
+                    value={createForm.tin}
+                    onChange={e => setCreateForm({ ...createForm, tin: e.target.value })}
                   />
                 </div>
                 <div>
@@ -615,6 +648,74 @@ export default function MyPrivileges() {
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {createTab === 'compliance' && (
+            <div className="space-y-5">
+              <div>
+                <h4 className="border-b pb-1 text-xs font-bold uppercase tracking-wider text-cyan-700">Company Compliance Profile</h4>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Select only registrations and tax types that apply. These selections do not automatically create obligations.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Company Registration Number</span>
+                  <input
+                    value={createForm.company_registration_number}
+                    onChange={event => setCreateForm({ ...createForm, company_registration_number: event.target.value })}
+                    className="w-full border border-gray-200 bg-slate-50 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Entity / Business Type</span>
+                  <select
+                    value={createForm.business_type}
+                    onChange={event => setCreateForm({ ...createForm, business_type: event.target.value })}
+                    className="w-full border border-gray-200 bg-slate-50 px-3 py-2 text-sm"
+                  >
+                    <option value="">Select type</option>
+                    <option value="company">Tanzanian company</option>
+                    <option value="foreign_company">Foreign company</option>
+                    <option value="sole_proprietor">Sole proprietor / business name</option>
+                    <option value="partnership">Partnership / business name</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Financial Year-End</span>
+                  <input
+                    type="date"
+                    value={createForm.financial_year_end}
+                    onChange={event => setCreateForm({ ...createForm, financial_year_end: event.target.value })}
+                    className="w-full border border-gray-200 bg-slate-50 px-3 py-2 text-sm font-mono"
+                  />
+                </label>
+              </div>
+              {(['TRA', 'ZRA', 'ZSSF', 'BPRA'] as const).map(authority => (
+                <fieldset key={authority} className="space-y-2 border border-slate-200 p-3">
+                  <legend className="px-1 text-[11px] font-bold uppercase tracking-wider text-slate-700">{authority} applicable registrations / taxes</legend>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {CLIENT_TAX_TYPES.filter(type => type.authority === authority).map(type => (
+                      <label key={type.value} className="flex items-start gap-2 text-xs text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={createForm.enabled_tax_types.includes(type.value)}
+                          onChange={event => setCreateForm(current => ({
+                            ...current,
+                            enabled_tax_types: event.target.checked
+                              ? [...current.enabled_tax_types, type.value]
+                              : current.enabled_tax_types.filter(value => value !== type.value),
+                          }))}
+                          className="mt-0.5 accent-cyan-600"
+                        />
+                        <span>{type.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
             </div>
           )}
 
@@ -830,10 +931,20 @@ export default function MyPrivileges() {
                 <h4 className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider mb-2 border-b pb-1">General Info</h4>
                 <Row label="Location" value={v.location} />
                 <Row label="Industry" value={v.industry} />
+                <Row label="TIN" value={v.tin} />
+                <Row label="Company Registration Number" value={v.company_registration_number} />
+                <Row label="Business Type" value={v.business_type?.replaceAll('_', ' ')} />
+                <Row label="Financial Year-End" value={v.financial_year_end} />
+                <Row
+                  label="Enabled Compliance Types"
+                  value={CLIENT_TAX_TYPES
+                    .filter(type => parseEnabledTaxTypes(v.enabled_tax_types).includes(type.value))
+                    .map(type => `${type.authority}: ${type.label}`)
+                    .join(', ')}
+                />
                 <Row label="Contact Person" value={v.contact_person} />
                 <Row label="Phone" value={v.phone} />
                 <Row label="Email" value={v.email} />
-                <Row label="Financial Year Start" value={v.financial_year_start} />
               </div>
 
               {(['tra', 'zra', 'bpra', 'zssf'] as const).map(a => (
@@ -922,11 +1033,84 @@ export default function MyPrivileges() {
       >
         {clientData && selectedPrivilege && (() => {
           const canEdit = selectedPrivilege.permissions.includes('edit_clients')
+          const canViewCompliance = canEdit
+            || selectedPrivilege.permissions.includes('view_compliance_profile')
+            || selectedPrivilege.permissions.includes('edit_compliance_profile')
+          const canEditCompliance = canEdit || selectedPrivilege.permissions.includes('edit_compliance_profile')
           const canViewPass = selectedPrivilege.permissions.includes('view_passwords')
           const allowedTabs = TABS.filter(tab => selectedPrivilege.permissions.includes(tab.perm))
 
           return (
             <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
+              {canViewCompliance && (
+                <section className="space-y-4 border border-cyan-100 bg-cyan-50/40 p-3">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-800">Compliance Profile</h4>
+                    <p className="mt-1 text-[10px] text-slate-500">Applicable registrations and tax types for this client.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Company Registration Number</span>
+                      <input
+                        disabled={!canEditCompliance}
+                        value={clientData.company_registration_number || ''}
+                        onChange={event => setClientData({ ...clientData, company_registration_number: event.target.value })}
+                        className="w-full border border-gray-200 bg-white px-3 py-2 text-sm disabled:bg-slate-100"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Entity / Business Type</span>
+                      <select
+                        disabled={!canEditCompliance}
+                        value={clientData.business_type || ''}
+                        onChange={event => setClientData({ ...clientData, business_type: event.target.value })}
+                        className="w-full border border-gray-200 bg-white px-3 py-2 text-sm disabled:bg-slate-100"
+                      >
+                        <option value="">Select type</option>
+                        <option value="company">Tanzanian company</option>
+                        <option value="foreign_company">Foreign company</option>
+                        <option value="sole_proprietor">Sole proprietor / business name</option>
+                        <option value="partnership">Partnership / business name</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Financial Year-End</span>
+                      <input
+                        type="date"
+                        disabled={!canEditCompliance}
+                        value={(clientData.financial_year_end || '').split('T')[0]}
+                        onChange={event => setClientData({ ...clientData, financial_year_end: event.target.value })}
+                        className="w-full border border-gray-200 bg-white px-3 py-2 text-sm disabled:bg-slate-100"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {CLIENT_TAX_TYPES.map(taxType => {
+                      const enabledTypes = parseEnabledTaxTypes(clientData.enabled_tax_types)
+                      const enabled = enabledTypes.includes(taxType.value)
+                      return (
+                        <label key={taxType.value} className="flex items-start gap-2 text-xs text-slate-700">
+                          <input
+                            type="checkbox"
+                            disabled={!canEditCompliance}
+                            checked={enabled}
+                            onChange={event => setClientData({
+                              ...clientData,
+                              enabled_tax_types: event.target.checked
+                                ? [...enabledTypes, taxType.value]
+                                : enabledTypes.filter(value => value !== taxType.value),
+                            })}
+                            className="mt-0.5 accent-cyan-600"
+                          />
+                          <span><b className="mr-1">{taxType.authority}</b>{taxType.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
               {canViewPass && !revealedData && (
                 <div className="flex justify-end pb-2">
                   <button

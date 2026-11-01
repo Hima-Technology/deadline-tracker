@@ -63,6 +63,7 @@ $router->post  ('/api/clients/{id}/documents', [ClientDocumentController::class,
 $router->get   ('/api/auditor-documents', [ClientDocumentController::class, 'auditorDocuments']);
 $router->get   ('/api/client-documents/{id}/file', [ClientDocumentController::class, 'download']);
 $router->post  ('/api/client-documents/{id}/feedback', [ClientDocumentController::class, 'feedback']);
+$router->delete('/api/client-documents/{id}', [ClientDocumentController::class, 'destroyAuditorDocument']);
 $router->get   ('/api/auditor-messages', [AuditorMessageController::class, 'index']);
 $router->post  ('/api/auditor-messages', [AuditorMessageController::class, 'store']);
 
@@ -71,12 +72,14 @@ $router->post  ('/api/auditor-messages', [AuditorMessageController::class, 'stor
 // =========================================================
 $router->get   ('/api/examinations',      [ExaminationController::class, 'index']);
 $router->post  ('/api/examinations',      [ExaminationController::class, 'store']);
+$router->put   ('/api/examinations/{id}', [ExaminationController::class, 'update']);
 $router->post  ('/api/examinations/{id}', [ExaminationController::class, 'update']);
 $router->delete('/api/examinations/{id}', [ExaminationController::class, 'destroy']);
 
 // Client Permissions (Staff Roles)
 $router->get ('/api/clients/{id}/permissions', [ClientController::class, 'permissions']);
 $router->post('/api/clients/{id}/permissions', [ClientController::class, 'assignPermissions']);
+$router->get ('/api/clients/{id}/my-permissions', [ClientController::class, 'myPermissions']);
 $router->post('/api/clients/{id}/passwords',   [ClientController::class, 'revealPasswords']);
 
 // =========================================================
@@ -96,6 +99,7 @@ $router->delete('/api/privileges/{id}', [PrivilegeController::class, 'destroy'])
 // OBLIGATIONS
 // =========================================================
 $router->get   ('/api/obligations',                  [ObligationController::class, 'index']);
+$router->get   ('/api/obligations/client/{clientId}/staff', [ObligationController::class, 'staffOptions']);
 $router->get   ('/api/obligations/client/{clientId}',[ObligationController::class, 'byClient']);
 $router->post  ('/api/obligations',                  [ObligationController::class, 'store']);
 $router->put   ('/api/obligations/{id}',             [ObligationController::class, 'update']);

@@ -55,7 +55,7 @@ class ClosingController
     public function close(string $id): void
     {
         $u = Auth::requireAuth();
-        $c = Closing::find((int)$id);
+        $c = Closing::findFull((int)$id);
         if (!$c) Response::error('Closing not found', 404);
         if ($u['role'] === 'staff' && (int)$c['assigned_staff_id'] !== (int)$u['id']) {
             Response::error('Forbidden', 403);
@@ -63,11 +63,28 @@ class ClosingController
         if ($c['status'] === 'closed') Response::error('Already closed', 422);
 
         $data = Request::body();
-        $ref  = $data['reference_number'] ?? null;
-        if (!$ref) Response::error('reference_number is required', 422);
-        $authorities = $this->validatedAuthorities($data['authorities'] ?? null);
+        $ref = trim((string)($data['reference_number'] ?? ''));
+        if ($ref === '') Response::error('Reference number is required', 422);
+        $completionNotes = trim((string)($data['completion_notes'] ?? ''));
+        $selectedAuthorities = $this->validatedAuthorities($data['authorities'] ?? null);
+        $requiredAuthority = $c['authority'] ?? null;
+        if (in_array($requiredAuthority, ['TRA', 'ZRA', 'BPRA', 'ZSSF'], true)) {
+            $authorities = [$requiredAuthority];
+        } elseif ($requiredAuthority === 'ALL') {
+            $authorities = ['TRA', 'ZRA', 'BPRA', 'ZSSF'];
+        } elseif ($requiredAuthority === 'TWO') {
+            if (count($selectedAuthorities) !== 2) {
+                Response::error('Select exactly two institutions for this task', 422);
+            }
+            $authorities = $selectedAuthorities;
+        } else {
+            $authorities = $selectedAuthorities;
+        }
 
         $proofPath = null;
+        if (!empty($c['requires_upload']) && empty($_FILES['proof']['tmp_name'])) {
+            Response::error('Proof attachment is required for this task', 422);
+        }
         if (!empty($_FILES['proof']['tmp_name'])) {
             $file = $_FILES['proof'];
             if ($file['size'] > 5 * 1024 * 1024) Response::error('File too large (max 5MB)', 422);
@@ -82,7 +99,14 @@ class ClosingController
         }
 
         $old = $c;
-        $updated = Closing::markClosed((int)$id, $u['id'], $ref, $proofPath, $authorities);
+        $updated = Closing::markClosed(
+            (int)$id,
+            $u['id'],
+            $ref,
+            $proofPath,
+            $authorities,
+            $completionNotes !== '' ? $completionNotes : null
+        );
         ActivityLogger::log($u['id'], (int)$id, 'closing_closed', $old, $updated);
         Response::success($updated, 'Closing marked as done');
     }

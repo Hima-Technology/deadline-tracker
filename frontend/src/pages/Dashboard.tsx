@@ -207,6 +207,13 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[17px]">domain_add</span>
               {t('Add client')}
             </button>
+            <button
+              onClick={() => nav('/privileges?tab=tasks&new=true')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200 bg-white px-3.5 py-2.5 text-xs font-bold text-cyan-800 shadow-sm transition-all hover:bg-cyan-50 active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-[17px]">add_task</span>
+              {t('Assign task')}
+            </button>
           </div>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-4">

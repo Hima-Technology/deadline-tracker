@@ -381,6 +381,12 @@ export default function Closings() {
                 <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">Reference Number</span>
                 <span className="text-sm font-semibold text-slate-700 font-mono">{viewClosing.reference_number || 'N/A'}</span>
               </div>
+              {viewClosing.completion_notes && (
+                <div className="p-3 border border-gray-100 bg-white sm:col-span-2">
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">{t('Completion notes')}</span>
+                  <span className="whitespace-pre-wrap text-sm text-slate-700">{viewClosing.completion_notes}</span>
+                </div>
+              )}
               <div className="p-3 border border-gray-100 bg-white sm:col-span-2">
                 <span className="block text-[10px] font-bold text-gray-400 uppercase font-mono mb-1">{t('Assigned Operator')}</span>
                 <span className="text-sm font-semibold text-slate-700">{viewClosing.staff_name || 'Unassigned'}</span>

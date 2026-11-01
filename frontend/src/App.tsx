@@ -6,7 +6,6 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Staff from './pages/Staff'
 import Clients from './pages/Clients'
-import Obligations from './pages/Obligations'
 import Closings from './pages/Closings'
 import MyClosings from './pages/MyClosings'
 import Settings from './pages/Settings'
@@ -16,6 +15,7 @@ import MyPrivileges from './pages/MyPrivileges'
 import Examinations from './pages/Examinations'
 import AuditorFeedback from './pages/AuditorFeedback'
 import AuditorMessages from './pages/AuditorMessages'
+import StaffDashboard from './pages/StaffDashboard'
 import { LanguageProvider } from './context/LanguageContext'
 
 // Redirect kulingana na role baada ya login
@@ -25,7 +25,7 @@ function HomeRedirect() {
 
   if (isAdmin()) return <Navigate to="/dashboard" replace />
   if (role === 'auditor') return <Navigate to="/my-privileges" replace />
-  return <Navigate to="/my-closings" replace />
+  return <Navigate to="/staff-dashboard" replace />
 }
 
 export default function App() {
@@ -43,7 +43,6 @@ export default function App() {
               <Route path="/dashboard"   element={<Dashboard />} />
               <Route path="/staff"       element={<Staff />} />
               <Route path="/clients"     element={<Clients />} />
-              <Route path="/obligations" element={<Obligations />} />
               <Route path="/examinations" element={<Examinations />} />
               <Route path="/auditor-feedback" element={<AuditorFeedback />} />
               <Route path="/closings"    element={<Closings />} />
@@ -53,6 +52,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute adminOrAuditor />}>
             <Route element={<Layout />}>
+              <Route path="/my-privileges" element={<MyPrivileges />} />
               <Route path="/auditor-messages" element={<AuditorMessages />} />
             </Route>
           </Route>
@@ -60,7 +60,9 @@ export default function App() {
           {/* Staff + Auditor routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/my-privileges" element={<MyPrivileges />} />
+              <Route element={<ProtectedRoute staffOnly />}>
+                <Route path="/staff-dashboard" element={<StaffDashboard />} />
+              </Route>
               <Route path="/settings"      element={<Settings />} />
               <Route element={<ProtectedRoute staffOnly />}>
                 <Route path="/my-closings" element={<MyClosings />} />

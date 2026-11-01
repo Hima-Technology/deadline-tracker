@@ -44,6 +44,11 @@ html.dark [class~="bg-white/95"] {
   background-color: #1e293b !important;
 }
 
+html.dark [class~="bg-white/75"],
+html.dark [class~="bg-white/80"] {
+  background-color: #273449 !important;
+}
+
 html.dark [class~="bg-[#faf8ff]"],
 html.dark [class~="bg-slate-50"],
 html.dark [class~="bg-slate-50/50"],
@@ -176,29 +181,16 @@ html.dark [class~="border-orange-200"] {
   border-color: #475569 !important;
 }
 
-html.dark .dashboard-welcome {
-  color: #0f172a !important;
+html.dark .dashboard-welcome,
+html.dark .staff-dashboard-welcome {
+  background-image: none !important;
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
 }
 
-html.dark .dashboard-welcome [class~="text-slate-900"],
-html.dark .dashboard-welcome [class~="text-slate-800"],
-html.dark .dashboard-welcome [class~="text-slate-700"] {
-  color: #0f172a !important;
-}
-
-html.dark .dashboard-welcome [class~="text-slate-600"],
-html.dark .dashboard-welcome [class~="text-slate-500"],
-html.dark .dashboard-welcome [class~="text-slate-400"] {
-  color: #475569 !important;
-}
-
-html.dark .dashboard-welcome [class~="text-cyan-700"],
-html.dark .dashboard-welcome [class~="text-emerald-700"] {
-  color: #0e7490 !important;
-}
-
-html.dark .dashboard-welcome [class~="bg-emerald-50"] {
-  background-color: #ecfdf5 !important;
+html.dark .dashboard-welcome [class~="bg-white/80"],
+html.dark .staff-dashboard-welcome [class~="bg-white/75"] {
+  background-color: #273449 !important;
 }
 
 html.dark input,

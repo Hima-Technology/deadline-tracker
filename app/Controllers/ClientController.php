@@ -11,12 +11,36 @@ use App\Services\ActivityLogger;
 
 class ClientController
 {
+    private const BUSINESS_TYPES = ['company', 'foreign_company', 'sole_proprietor', 'partnership', 'other'];
+    private const TAX_TYPES = [
+        'tra_paye', 'tra_sdl', 'tra_wht', 'tra_provisional_income_tax', 'tra_corporate_income_tax',
+        'zra_vat', 'zra_infrastructure_tax', 'zra_hotel_levy', 'zra_restaurant_levy',
+        'zra_tour_operation_levy', 'zra_stamp_duty', 'zssf_employer_registration',
+        'zssf_monthly_contributions', 'bpra_company_annual_return',
+        'bpra_foreign_company_annual_return', 'bpra_sole_proprietor_annual_return',
+        'bpra_partnership_annual_return', 'bpra_particulars_changes',
+    ];
+
     public function index(): void
     {
         try {
             $u = Auth::requireAuth();
             $clients = Client::all([], 'company_name ASC');
-            $clients = array_map(fn($c) => $this->maskPasswords($this->hideUploadedDocuments($c, $u), $u), $clients);
+            $clients = array_map(function (array $client) use ($u): array {
+                $clientId = (int)($client['id'] ?? 0);
+                $permissions = $this->permissionsFor($u, $clientId);
+                $canViewFullProfile = ($u['role'] ?? '') === 'admin'
+                    || in_array('view_clients', $permissions, true)
+                    || in_array('edit_clients', $permissions, true);
+                if (!$canViewFullProfile && (
+                    in_array('view_compliance_profile', $permissions, true)
+                    || in_array('edit_compliance_profile', $permissions, true)
+                )) {
+                    $client = $this->complianceProfileOnly($client);
+                }
+                $client = $this->hideComplianceProfile($client, $u, $permissions);
+                return $this->maskPasswords($this->hideUploadedDocuments($client, $u), $u);
+            }, $clients);
             Response::success($clients);
         } catch (\Throwable $e) {
             Response::error('Failed to fetch clients', 500, ['detail' => $e->getMessage()]);
@@ -28,11 +52,17 @@ class ClientController
         try {
             $u = Auth::requireAuth();
             $clientId = (int)$id;
+            $canViewFullProfile = ($u['role'] ?? '') === 'admin';
+            $perms = [];
 
             if (($u['role'] ?? '') !== 'admin') {
                 $perms = $this->permissionsFor($u, $clientId);
+                $canViewFullProfile = in_array('view_clients', $perms, true)
+                    || in_array('edit_clients', $perms, true);
                 $canView = in_array('view_clients', $perms, true)
                     || in_array('edit_clients', $perms, true)
+                    || in_array('view_compliance_profile', $perms, true)
+                    || in_array('edit_compliance_profile', $perms, true)
                     || count(array_intersect($perms, [
                         'upload_tra', 'upload_zra', 'upload_bpra', 'upload_zssf'
                     ])) > 0;
@@ -48,6 +78,12 @@ class ClientController
                 Response::error('Client not found', 404);
                 return;
             }
+            $canViewComplianceProfile = in_array('view_compliance_profile', $perms, true)
+                || in_array('edit_compliance_profile', $perms, true);
+            if (!$canViewFullProfile && $canViewComplianceProfile) {
+                $c = $this->complianceProfileOnly($c);
+            }
+            $c = $this->hideComplianceProfile($c, $u, $perms ?? []);
             Response::success($this->maskPasswords($this->hideUploadedDocuments($c, $u), $u));
         } catch (\Throwable $e) {
             Response::error('Failed to fetch client', 500, ['detail' => $e->getMessage()]);
@@ -70,6 +106,7 @@ class ClientController
             $data = Request::body();
             Validator::require($data, ['company_name']);
             $data['created_by'] = $u['id'];
+            $data = $this->sanitizeComplianceFields($data);
 
             if (($u['role'] ?? '') !== 'admin') {
                 foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $field) {
@@ -138,11 +175,12 @@ class ClientController
 
             $perms     = $this->permissionsFor($u, $clientId);
             $canEdit   = in_array('edit_clients', $perms, true);
+            $canEditCompliance = in_array('edit_compliance_profile', $perms, true);
             $canUpload = count(array_intersect($perms, [
                 'upload_tra', 'upload_zra', 'upload_bpra', 'upload_zssf'
             ])) > 0;
 
-            if (($u['role'] ?? '') !== 'admin' && !$canEdit && !$canUpload) {
+            if (($u['role'] ?? '') !== 'admin' && !$canEdit && !$canEditCompliance && !$canUpload) {
                 Response::error('Huna ruhusa ya kubadilisha taarifa hizi', 403);
                 return;
             }
@@ -154,6 +192,7 @@ class ClientController
             }
 
             $data = Request::body();
+            $data = $this->sanitizeComplianceFields($data);
 
             foreach (['tra_attachment', 'zra_attachment', 'bpra_attachment', 'zssf_attachment'] as $f) {
                 if (isset($data[$f]) && (is_array($data[$f]) && empty($data[$f]) || $data[$f] === '[]')) {
@@ -164,6 +203,16 @@ class ClientController
             $data = $this->sanitizeDates($data);
 
             if (!$canEdit) {
+                if ($canEditCompliance) {
+                    $allowedFields = [
+                        'company_registration_number', 'business_type',
+                        'enabled_tax_types', 'financial_year_end',
+                    ];
+                    $data = array_intersect_key($data, array_flip($allowedFields));
+                } else {
+                    $data = [];
+                }
+
                 $textFields = [
                     'company_name', 'location', 'industry', 'contact_person', 'phone', 'email',
                     'financial_year_start', 'contract_start_date', 'contract_end_date',
@@ -428,6 +477,12 @@ class ClientController
         return false;
     }
 
+    public function myPermissions(string $id): void
+    {
+        $user = Auth::requireAuth();
+        Response::success($this->permissionsFor($user, (int)$id));
+    }
+
     /**
      * Rudi permissions za user kwa client fulani.
      */
@@ -552,6 +607,29 @@ class ClientController
         return $client;
     }
 
+    private function hideComplianceProfile(array $client, array $user, array $permissions): array
+    {
+        if (($user['role'] ?? '') !== 'admin'
+            && !in_array('view_compliance_profile', $permissions, true)
+            && !in_array('edit_compliance_profile', $permissions, true)) {
+            foreach ([
+                'company_registration_number', 'business_type',
+                'enabled_tax_types', 'financial_year_end',
+            ] as $field) {
+                unset($client[$field]);
+            }
+        }
+        return $client;
+    }
+
+    private function complianceProfileOnly(array $client): array
+    {
+        return array_intersect_key($client, array_flip([
+            'id', 'company_name', 'location', 'tin', 'company_registration_number',
+            'business_type', 'enabled_tax_types', 'industry', 'financial_year_end',
+        ]));
+    }
+
     private function maskPasswords(array $c, array $user): array
     {
         foreach (['tra_password', 'zra_password', 'bpra_password', 'zssf_password'] as $f) {
@@ -566,6 +644,7 @@ class ClientController
     {
         $dateFields = [
             'contract_start_date', 'contract_end_date',
+            'financial_year_end',
             'tra_reg_date', 'tra_start_date', 'tra_end_date',
             'zra_reg_date', 'zra_start_date', 'zra_end_date',
             'bpra_reg_date', 'bpra_start_date', 'bpra_end_date',
@@ -576,6 +655,38 @@ class ClientController
                 $data[$field] = null;
             }
         }
+        return $data;
+    }
+
+    private function sanitizeComplianceFields(array $data): array
+    {
+        if (array_key_exists('business_type', $data)) {
+            $businessType = trim((string)$data['business_type']);
+            if ($businessType !== '' && !in_array($businessType, self::BUSINESS_TYPES, true)) {
+                Response::error('Invalid business type', 422);
+            }
+            $data['business_type'] = $businessType === '' ? null : $businessType;
+        }
+
+        if (array_key_exists('enabled_tax_types', $data)) {
+            $taxTypes = $data['enabled_tax_types'];
+            if (is_string($taxTypes)) {
+                $taxTypes = json_decode($taxTypes, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Response::error('Enabled tax types must be valid JSON', 422);
+                }
+            }
+            if (!is_array($taxTypes)) {
+                Response::error('Enabled tax types must be a list', 422);
+            }
+            foreach ($taxTypes as $type) {
+                if (!is_string($type) || !in_array($type, self::TAX_TYPES, true)) {
+                    Response::error('One or more enabled tax types are invalid', 422);
+                }
+            }
+            $data['enabled_tax_types'] = json_encode(array_values(array_unique($taxTypes)));
+        }
+
         return $data;
     }
 

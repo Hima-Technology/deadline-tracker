@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import api, { errMsg } from '../api/client'
 import Toast from '../components/Toast'
 import Modal from '../components/Modal'
+import Swal from 'sweetalert2'
 
 type AuditorDocument = {
   id: number
@@ -18,7 +19,7 @@ type AuditorDocument = {
 
 export default function AuditorFeedback() {
   const [documents, setDocuments] = useState<AuditorDocument[]>([])
-  const [preview, setPreview] = useState<{ url: string; name: string; type: string } | null>(null)
+  const [preview, setPreview] = useState<{ id: number; url: string; name: string; type: string } | null>(null)
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
@@ -78,6 +79,7 @@ export default function AuditorFeedback() {
       const url = URL.createObjectURL(blob)
       const contentType = response.headers['content-type']
       setPreview({
+        id: document.id,
         url,
         name: document.original_name,
         type: typeof contentType === 'string' ? contentType : blob.type,
@@ -94,6 +96,28 @@ export default function AuditorFeedback() {
       })
       setDocuments(items => items.map(item => item.id === document.id ? response.data.data : item))
       setToast({ show: true, message: 'Auditor feedback saved', type: 'success' })
+    } catch (e) {
+      setToast({ show: true, message: errMsg(e), type: 'error' })
+    }
+  }
+
+  async function deleteDocument(document: AuditorDocument) {
+    const result = await Swal.fire({
+      title: 'Delete auditor document?',
+      text: `${document.original_name} and its uploaded file will be permanently deleted.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Delete document',
+      cancelButtonText: 'Cancel',
+    })
+    if (!result.isConfirmed) return
+
+    try {
+      await api.delete(`/client-documents/${document.id}`)
+      setDocuments(items => items.filter(item => item.id !== document.id))
+      setPreview(current => current?.id === document.id ? null : current)
+      setToast({ show: true, message: 'Auditor document deleted', type: 'success' })
     } catch (e) {
       setToast({ show: true, message: errMsg(e), type: 'error' })
     }
@@ -163,7 +187,7 @@ export default function AuditorFeedback() {
                     {document.authority} · Uploaded by {document.uploader_name} · {new Date(document.created_at).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-2 self-start">
+                <div className="flex shrink-0 flex-wrap gap-2 self-start">
                   <button
                     type="button"
                     onClick={() => void previewDocument(document)}
@@ -179,6 +203,14 @@ export default function AuditorFeedback() {
                   >
                     <span className="material-symbols-outlined text-[16px]">download</span>
                     Download
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteDocument(document)}
+                    className="flex items-center justify-center gap-1 rounded-sm border border-red-200 px-3 py-2 text-xs font-bold uppercase text-red-700 hover:bg-red-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    Delete
                   </button>
                 </div>
               </div>

@@ -1,5 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Toast from './Toast'
 import { useLanguage } from '../context/LanguageContext'
@@ -7,19 +7,17 @@ import { useLanguage } from '../context/LanguageContext'
 const adminNav = [
   { to: '/dashboard',   label: 'Dashboard',        icon: 'dashboard' },
   { to: '/staff',       label: 'Staff Directory',  icon: 'grid_view' },
-  { to: '/privileges',  label: 'Staff Privileges', icon: 'admin_panel_settings' },
   { to: '/clients',     label: 'Client Directory', icon: 'people' },
   { to: '/auditor-feedback', label: 'Auditor Feedback', icon: 'rate_review' },
   { to: '/auditor-messages', label: 'Auditor Messages', icon: 'forum' },
-  { to: '/obligations', label: 'Deadlines',        icon: 'timer' },
   { to: '/examinations', label: 'Examinations',    icon: 'fact_check' },
   { to: '/closings',    label: 'System Logs',      icon: 'terminal' },
   { to: '/settings',    label: 'Settings',         icon: 'settings' },
 ]
 
 const staffNav = [
+  { to: '/staff-dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/my-closings',   label: 'My Tasks',      icon: 'checklist' },
-  { to: '/my-privileges', label: 'My Privileges', icon: 'admin_panel_settings' },
   { to: '/settings',      label: 'My Settings',   icon: 'settings' },
 ]
 
@@ -33,10 +31,16 @@ export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
   const { t } = useLanguage()
   const nav = useNavigate()
+  const location = useLocation()
 
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [staffAccessOpen, setStaffAccessOpen] = useState(location.pathname === '/privileges')
   const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    setStaffAccessOpen(location.pathname === '/privileges')
+  }, [location.pathname])
 
   const role = (user?.role || '').toLowerCase()
   const isAuditor = role === 'auditor'
@@ -146,27 +150,86 @@ export default function Layout() {
 
           <nav className="flex-1 py-3 px-2 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
             {links.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3 py-2.5 transition-all rounded-sm ${
-                    isActive
-                      ? 'bg-cyan-500 text-white font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
-                  } ${isCollapsed ? 'justify-center' : ''}`
-                }
-                title={isCollapsed ? t(l.label) : undefined}
-              >
-                <span className={`material-symbols-outlined text-[20px] ${isCollapsed ? '' : 'opacity-80 group-hover:opacity-100'}`}>
-                  {l.icon}
-                </span>
-                {!isCollapsed && (
-                  <span className="text-xs uppercase tracking-wider font-mono whitespace-nowrap">
-                    {t(l.label)}
-                  </span>
+              <Fragment key={l.to}>
+                {isAdmin() && l.to === '/clients' && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isCollapsed) {
+                          setIsCollapsed(false)
+                          setStaffAccessOpen(true)
+                        } else {
+                          setStaffAccessOpen(open => !open)
+                        }
+                      }}
+                      aria-expanded={staffAccessOpen}
+                      className={`group flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-all ${
+                        location.pathname === '/privileges'
+                          ? 'bg-cyan-500 font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                          : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      title={isCollapsed ? t('Staff Access Management') : undefined}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+                      {!isCollapsed && (
+                        <>
+                          <span className="flex-1 whitespace-nowrap text-xs font-mono uppercase tracking-wider">
+                            {t('Staff Access Management')}
+                          </span>
+                          <span className="material-symbols-outlined text-base">
+                            {staffAccessOpen ? 'expand_less' : 'expand_more'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                    {staffAccessOpen && (
+                      <div className={`mt-1 flex flex-col gap-1 ${isCollapsed ? 'pl-1' : 'pl-5'}`}>
+                        <NavLink
+                          to="/privileges?tab=access"
+                          title={isCollapsed ? t('Review Staff Privileges') : undefined}
+                          className={`flex items-center gap-2 rounded-sm px-2 py-2 text-[10px] font-mono uppercase tracking-wide ${
+                              !location.search.includes('tab=tasks') ? 'bg-cyan-50 font-bold text-cyan-800' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                            } ${isCollapsed ? 'justify-center' : ''}`}
+                        >
+                          <span className="material-symbols-outlined text-base">verified_user</span>
+                          {!isCollapsed && <span>{t('Review Staff Privileges')}</span>}
+                        </NavLink>
+                        <NavLink
+                          to="/privileges?tab=tasks"
+                          title={isCollapsed ? t('Assign Tasks to Staff') : undefined}
+                          className={`flex items-center gap-2 rounded-sm px-2 py-2 text-[10px] font-mono uppercase tracking-wide ${
+                              location.search.includes('tab=tasks') ? 'bg-cyan-50 font-bold text-cyan-800' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                            } ${isCollapsed ? 'justify-center' : ''}`}
+                        >
+                          <span className="material-symbols-outlined text-base">assignment_add</span>
+                          {!isCollapsed && <span>{t('Assign Tasks to Staff')}</span>}
+                        </NavLink>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </NavLink>
+                <NavLink
+                  to={l.to}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 px-3 py-2.5 transition-all rounded-sm ${
+                      isActive
+                        ? 'bg-cyan-500 text-white font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                    } ${isCollapsed ? 'justify-center' : ''}`
+                  }
+                  title={isCollapsed ? t(l.label) : undefined}
+                >
+                  <span className={`material-symbols-outlined text-[20px] ${isCollapsed ? '' : 'opacity-80 group-hover:opacity-100'}`}>
+                    {l.icon}
+                  </span>
+                  {!isCollapsed && (
+                    <span className="text-xs uppercase tracking-wider font-mono whitespace-nowrap">
+                      {t(l.label)}
+                    </span>
+                  )}
+                </NavLink>
+              </Fragment>
             ))}
           </nav>
         </aside>
@@ -202,21 +265,66 @@ export default function Layout() {
 
             <nav className="flex-1 py-4 px-3 flex flex-col gap-1 overflow-y-auto">
               {links.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `group flex items-center gap-3 px-3 py-3 transition-all rounded-md ${
-                      isActive
-                        ? 'bg-cyan-500 text-white font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
-                    }`
-                  }
-                >
-                  <span className="material-symbols-outlined text-[22px]">{l.icon}</span>
-                  <span className="text-sm uppercase tracking-wider font-mono">{t(l.label)}</span>
-                </NavLink>
+                <Fragment key={l.to}>
+                  {isAdmin() && l.to === '/clients' && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setStaffAccessOpen(open => !open)}
+                        aria-expanded={staffAccessOpen}
+                        className={`flex w-full items-center gap-3 rounded-md px-3 py-3 text-left transition-all ${
+                          location.pathname === '/privileges'
+                            ? 'bg-cyan-500 font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                            : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
+                        <span className="flex-1 text-sm font-mono uppercase tracking-wider">{t('Staff Access Management')}</span>
+                        <span className="material-symbols-outlined text-lg">
+                          {staffAccessOpen ? 'expand_less' : 'expand_more'}
+                        </span>
+                      </button>
+                      {staffAccessOpen && (
+                        <div className="ml-5 mt-1 flex flex-col gap-1 border-l border-slate-200 pl-3">
+                          <NavLink
+                            to="/privileges?tab=access"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
+                              !location.search.includes('tab=tasks') ? 'bg-cyan-50 font-bold text-cyan-800' : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-lg">verified_user</span>
+                            {t('Review Staff Privileges')}
+                          </NavLink>
+                          <NavLink
+                            to="/privileges?tab=tasks"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
+                              location.search.includes('tab=tasks') ? 'bg-cyan-50 font-bold text-cyan-800' : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-lg">assignment_add</span>
+                            {t('Assign Tasks to Staff')}
+                          </NavLink>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <NavLink
+                    to={l.to}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 px-3 py-3 transition-all rounded-md ${
+                        isActive
+                          ? 'bg-cyan-500 text-white font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                      }`
+                    }
+                  >
+                    <span className="material-symbols-outlined text-[22px]">{l.icon}</span>
+                    <span className="text-sm uppercase tracking-wider font-mono">{t(l.label)}</span>
+                  </NavLink>
+                </Fragment>
               ))}
             </nav>
           </aside>
@@ -241,13 +349,13 @@ export default function Layout() {
             </NavLink>
             <div className="relative -top-4">
               <button
-                onClick={() => nav('/obligations?new=true')}
+                onClick={() => nav('/privileges?tab=tasks&new=true')}
                 className="w-14 h-14 bg-cyan-500 hover:bg-cyan-400 text-white rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(6,182,212,0.4)] transition-transform active:scale-95 border-4 border-white"
               >
                 <span className="material-symbols-outlined text-[28px]">add</span>
               </button>
             </div>
-            <NavLink to="/obligations" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
+            <NavLink to="/closings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">notifications_active</span>
               <span className="text-[9px] font-bold uppercase font-mono">{t('Alerts')}</span>
             </NavLink>
@@ -273,17 +381,13 @@ export default function Layout() {
           </>
         ) : (
           <>
-            <NavLink to="/my-closings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
+            <NavLink to="/staff-dashboard" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">dashboard</span>
-              <span className="text-[9px] font-bold uppercase font-mono">{t('Home')}</span>
-            </NavLink>
-            <NavLink to="/my-privileges" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
-              <span className="material-symbols-outlined text-[22px]">grid_view</span>
-              <span className="text-[9px] font-bold uppercase font-mono">{t('My Privileges')}</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('Dashboard')}</span>
             </NavLink>
             <NavLink to="/my-closings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
-              <span className="material-symbols-outlined text-[22px]">notifications_active</span>
-              <span className="text-[9px] font-bold uppercase font-mono">{t('Alerts')}</span>
+              <span className="material-symbols-outlined text-[22px]">checklist</span>
+              <span className="text-[9px] font-bold uppercase font-mono">{t('My Work')}</span>
             </NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center gap-1 w-14 h-full ${isActive ? 'text-cyan-600' : 'text-gray-400 hover:text-slate-800'}`}>
               <span className="material-symbols-outlined text-[22px]">account_circle</span>

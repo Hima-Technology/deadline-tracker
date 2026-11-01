@@ -10,6 +10,27 @@ export const AUTHORITIES: { value: Authority; label: string }[] = [
   { value: 'ZSSF', label: 'ZSSF' },
 ]
 
+export const CLIENT_TAX_TYPES = [
+  { value: 'tra_paye', authority: 'TRA', label: 'PAYE Return' },
+  { value: 'tra_sdl', authority: 'TRA', label: 'Skills and Development Levy (SDL)' },
+  { value: 'tra_wht', authority: 'TRA', label: 'Withholding Tax (WHT)' },
+  { value: 'tra_provisional_income_tax', authority: 'TRA', label: 'Provisional Income Tax' },
+  { value: 'tra_corporate_income_tax', authority: 'TRA', label: 'Corporate Income Tax / Final Return' },
+  { value: 'zra_vat', authority: 'ZRA', label: 'VAT Return and Payment' },
+  { value: 'zra_infrastructure_tax', authority: 'ZRA', label: 'Infrastructure Tax' },
+  { value: 'zra_hotel_levy', authority: 'ZRA', label: 'Hotel Levy' },
+  { value: 'zra_restaurant_levy', authority: 'ZRA', label: 'Restaurant Levy' },
+  { value: 'zra_tour_operation_levy', authority: 'ZRA', label: 'Tour Operation Levy' },
+  { value: 'zra_stamp_duty', authority: 'ZRA', label: 'Stamp Duty' },
+  { value: 'zssf_employer_registration', authority: 'ZSSF', label: 'Employer Registration' },
+  { value: 'zssf_monthly_contributions', authority: 'ZSSF', label: 'Monthly Contributions' },
+  { value: 'bpra_company_annual_return', authority: 'BPRA', label: 'Company Annual Return' },
+  { value: 'bpra_foreign_company_annual_return', authority: 'BPRA', label: 'Foreign Company Annual Return' },
+  { value: 'bpra_sole_proprietor_annual_return', authority: 'BPRA', label: 'Business Name Annual Return — Sole Proprietor' },
+  { value: 'bpra_partnership_annual_return', authority: 'BPRA', label: 'Business Name Annual Return — Partnership' },
+  { value: 'bpra_particulars_changes', authority: 'BPRA', label: 'Changes to Particulars' },
+] as const
+
 export interface User {
   id: number
   name: string
@@ -40,6 +61,9 @@ export interface Client {
   // Vigezo vipya (Company Profile & Credentials)
   location?: 'Mainland' | 'Zanzibar'
   tin?: string
+  company_registration_number?: string
+  business_type?: 'company' | 'foreign_company' | 'sole_proprietor' | 'partnership' | 'other'
+  enabled_tax_types?: string[] | string
   tra_number?: string
   zra_number?: string
   bpra_number?: string
@@ -70,6 +94,8 @@ export interface Obligation {
   document_type?: string
   filing_status?: 'Not started' | 'Waiting for client' | 'In preparation' | 'Under review' | 'Filed' | 'Rejected' | 'Amended'
   confirmed_due_date?: string
+  requires_upload?: boolean
+  instructions?: string
 }
 
 export interface Closing {
@@ -86,6 +112,10 @@ export interface Closing {
   proof_file_path?: string | null
   authorities?: Authority[]
   authority?: string
+  completion_notes?: string | null
+  requires_upload?: boolean
+  document_type?: string | null
+  instructions?: string | null
   company_name?: string
   obligation_title?: string
   staff_name?: string
